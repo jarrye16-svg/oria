@@ -1,0 +1,38 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Oria: preparar",
+      "type": "shell",
+      "command": "flutter clean; flutter pub get; flutter analyze",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Oria: rodar iPhone local 5051",
+      "type": "shell",
+      "command": "powershell -ExecutionPolicy Bypass -File tool/run_iphone_local.ps1",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Oria: rodar túnel/ngrok 5051",
+      "type": "shell",
+      "command": "powershell -ExecutionPolicy Bypass -File tool/run_ngrok_mode.ps1",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Oria: liberar firewall 5051",
+      "type": "shell",
+      "command": "powershell -ExecutionPolicy Bypass -File tool/firewall_5051.ps1",
+      "problemMatcher": []
+    },
+    {
+      "label": "Oria: ngrok 5051",
+      "type": "shell",
+      "command": "ngrok http 5051",
+      "problemMatcher": []
+    }
+  ]
+}

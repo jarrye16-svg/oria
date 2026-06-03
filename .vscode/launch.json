@@ -1,0 +1,16 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Oria | Chrome local",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "chrome",
+      "program": "lib/main.dart",
+      "toolArgs": [
+        "--dart-define=SUPABASE_URL=https://hrfsphtwslcjnpvcwdxl.supabase.co",
+        "--dart-define=SUPABASE_ANON_KEY=sb_publishable__C7YM-EoJQgqdduVFb0WTQ_53AXMEgp"
+      ]
+    }
+  ]
+}

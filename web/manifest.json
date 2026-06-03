@@ -1,0 +1,19 @@
+{
+  "name": "Oria",
+  "short_name": "Oria",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#F4F7FC",
+  "theme_color": "#1D4ED8",
+  "description": "Controle financeiro familiar",
+  "orientation": "portrait",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "favicon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "scope": "."
+}
