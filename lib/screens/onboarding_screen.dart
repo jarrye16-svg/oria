@@ -151,7 +151,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         const Text(
-                          'Você já faz parte de uma família?',
+                          'Como você quer começar?',
                           style: TextStyle(
                             fontSize: 26,
                             fontWeight: FontWeight.w900,
@@ -159,7 +159,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         ),
                         const SizedBox(height: 8),
                         const Text(
-                          'Sua conta está pronta. Agora escolha como organizar suas finanças no Oria.',
+                          'Escolha uma opção para organizar as finanças no Oria.',
                           style: TextStyle(
                             color: OriaTheme.muted,
                             fontWeight: FontWeight.w600,
@@ -172,16 +172,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             onPressed: () =>
                                 setState(() => _joiningFamily = true),
                             icon: const Icon(Icons.family_restroom_rounded),
-                            label: const Text(
-                              'Sim, quero entrar na minha família',
-                            ),
+                            label: const Text('Entrar em uma família'),
                           ),
                           const SizedBox(height: 12),
                           OutlinedButton.icon(
                             onPressed: () =>
                                 setState(() => _joiningFamily = false),
                             icon: const Icon(Icons.add_home_rounded),
-                            label: const Text('Não, quero criar minha casa'),
+                            label: const Text('Criar uma casa'),
                           ),
                         ],
                         if (_joiningFamily != null)
@@ -192,7 +190,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                     _joiningFamily = null;
                                     _error = null;
                                   }),
-                            child: const Text('Voltar às opções'),
+                            child: const Text('Escolher outra opção'),
                           ),
                         if (_joiningFamily == true)
                           ExpansionTile(
@@ -201,11 +199,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             tilePadding: EdgeInsets.zero,
                             initiallyExpanded: true,
                             title: const Text(
-                              'Entrar em uma familia',
+                              'Entrar em uma família',
                               style: TextStyle(fontWeight: FontWeight.w900),
                             ),
                             subtitle: const Text(
-                              'Abra o link enviado pelo administrador ou informe o nome da família e o código temporário abaixo. Você não precisa da senha de outra pessoa.',
+                              'Use o link ou código que o administrador da família enviou. Cada pessoa entra com sua própria conta.',
                               style: TextStyle(
                                 color: OriaTheme.muted,
                                 fontWeight: FontWeight.w600,
@@ -235,8 +233,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 controller: _familyController,
                                 textInputAction: TextInputAction.next,
                                 decoration: const InputDecoration(
-                                  labelText: 'Nome da familia',
-                                  hintText: 'Ex.: Familia Dal Magro',
+                                  labelText: 'Nome da família',
+                                  hintText: 'Ex.: Família Silva',
                                   prefixIcon: Icon(
                                     Icons.family_restroom_rounded,
                                   ),
@@ -252,7 +250,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 maxLength: 6,
                                 decoration: const InputDecoration(
                                   counterText: '',
-                                  labelText: 'Codigo de 6 digitos',
+                                  labelText: 'Código de 6 dígitos',
                                   prefixIcon: Icon(Icons.password_rounded),
                                 ),
                               ),
@@ -263,7 +261,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 label: Text(
                                   _joining
                                       ? 'Entrando...'
-                                      : 'Entrar na familia',
+                                      : 'Entrar na família',
                                 ),
                               ),
                             ],
@@ -276,11 +274,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             tilePadding: EdgeInsets.zero,
                             initiallyExpanded: true,
                             title: const Text(
-                              'Criar uma nova casa',
+                              'Criar minha casa',
                               style: TextStyle(fontWeight: FontWeight.w900),
                             ),
                             subtitle: const Text(
-                              'Use se voce vai administrar um novo grupo familiar.',
+                              'Para começar uma casa nova e convidar sua família depois.',
                               style: TextStyle(
                                 color: OriaTheme.muted,
                                 fontWeight: FontWeight.w600,
@@ -331,7 +329,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                   }
                                 },
                           icon: const Icon(Icons.logout_rounded),
-                          label: const Text('Sair ou trocar de conta'),
+                          label: const Text('Sair da conta'),
                         ),
                       ],
                     ),

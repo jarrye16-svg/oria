@@ -290,56 +290,63 @@ class _GoalsScreenState extends State<GoalsScreen> {
                           ),
                         ),
                         const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Falta para concluir',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: OriaTheme.muted,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w800,
+                        Semantics(
+                          container: true,
+                          child: Material(
+                            type: MaterialType.transparency,
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Falta para concluir',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: OriaTheme.muted,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        money(goal.remaining),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w900,
+                                          color: OriaTheme.blueDark,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                OutlinedButton.icon(
+                                  onPressed: () => _openMovement(goal),
+                                  icon: const Icon(Icons.add, size: 18),
+                                  label: const Text('Aporte'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: OriaTheme.blue,
+                                    side: const BorderSide(
+                                      color: OriaTheme.cardBorder,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 10,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
                                     ),
                                   ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    money(goal.remaining),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w900,
-                                      color: OriaTheme.blueDark,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 10),
-                            OutlinedButton.icon(
-                              onPressed: () => _openMovement(goal),
-                              icon: const Icon(Icons.add, size: 18),
-                              label: const Text('Aporte'),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: OriaTheme.blue,
-                                side: const BorderSide(
-                                  color: OriaTheme.cardBorder,
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 10,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       ],
                     ),
