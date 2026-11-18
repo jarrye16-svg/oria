@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../app/theme.dart';
 import '../services/house_service.dart';
+import '../services/auth_service.dart';
 import '../widgets/app_logo.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -32,10 +34,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Future<void> _create() async {
+    if (_loading || _joining) return;
     final name = _controller.text.trim();
 
     if (name.length < 3) {
-      setState(() => _error = 'Informe um nome para a casa.');
+      setState(() => _error = 'Use pelo menos 3 caracteres no nome da casa.');
       return;
     }
 
@@ -49,18 +52,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       await widget.onCreated();
     } catch (_) {
       if (!mounted) return;
-      setState(() => _error = 'Nao consegui criar a casa. Confira o Supabase e tente novamente.');
+      setState(
+        () => _error = 'Não consegui criar a casa agora. Confira sua conexão e tente novamente.',
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
   Future<void> _join() async {
+    if (_loading || _joining) return;
     final houseName = _familyController.text.trim();
     final code = _codeController.text.trim();
 
     if (houseName.length < 3) {
-      setState(() => _error = 'Informe o nome da familia.');
+      setState(
+        () => _error = 'Use pelo menos 3 caracteres no nome da família.',
+      );
       return;
     }
 
@@ -75,14 +83,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     });
 
     try {
-      await _service.joinHouseWithCode(
-        houseName: houseName,
-        code: code,
-      );
+      await _service.joinHouseWithCode(houseName: houseName, code: code);
       await widget.onCreated();
     } catch (error) {
       if (!mounted) return;
-      setState(() => _error = error.toString().replaceFirst('Exception: ', ''));
+      final message = error.toString().toLowerCase();
+      setState(
+        () => _error =
+            message.contains('invalido') || message.contains('expirado')
+            ? 'Código inválido ou expirado. Confira o nome da família e peça um novo código.'
+            : 'Não consegui entrar na família agora. Tente novamente em instantes.',
+      );
     } finally {
       if (mounted) setState(() => _joining = false);
     }
@@ -109,21 +120,36 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       children: [
                         const Text(
                           'Comecar no Oria',
-                          style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
+                          style: TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         const Text(
                           'Crie uma nova casa ou entre em uma familia existente com o codigo do administrador.',
-                          style: TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w600, height: 1.4),
+                          style: TextStyle(
+                            color: OriaTheme.muted,
+                            fontWeight: FontWeight.w600,
+                            height: 1.4,
+                          ),
                         ),
                         const SizedBox(height: 18),
                         ExpansionTile(
+                          onExpansionChanged: (_) =>
+                              setState(() => _error = null),
                           tilePadding: EdgeInsets.zero,
                           initiallyExpanded: true,
-                          title: const Text('Entrar em uma familia', style: TextStyle(fontWeight: FontWeight.w900)),
+                          title: const Text(
+                            'Entrar em uma familia',
+                            style: TextStyle(fontWeight: FontWeight.w900),
+                          ),
                           subtitle: const Text(
                             'Use o nome da familia e o codigo temporario de 6 digitos.',
-                            style: TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w600),
+                            style: TextStyle(
+                              color: OriaTheme.muted,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           children: [
                             const SizedBox(height: 10),
@@ -140,6 +166,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             TextField(
                               controller: _codeController,
                               keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
                               maxLength: 6,
                               decoration: const InputDecoration(
                                 counterText: '',
@@ -149,19 +178,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             ),
                             const SizedBox(height: 14),
                             ElevatedButton.icon(
-                              onPressed: _joining ? null : _join,
+                              onPressed: _joining || _loading ? null : _join,
                               icon: const Icon(Icons.login_rounded),
-                              label: Text(_joining ? 'Entrando...' : 'Entrar na familia'),
+                              label: Text(
+                                _joining ? 'Entrando...' : 'Entrar na familia',
+                              ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 12),
                         ExpansionTile(
+                          onExpansionChanged: (_) =>
+                              setState(() => _error = null),
                           tilePadding: EdgeInsets.zero,
-                          title: const Text('Criar uma nova casa', style: TextStyle(fontWeight: FontWeight.w900)),
+                          title: const Text(
+                            'Criar uma nova casa',
+                            style: TextStyle(fontWeight: FontWeight.w900),
+                          ),
                           subtitle: const Text(
                             'Use se voce vai administrar um novo grupo familiar.',
-                            style: TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w600),
+                            style: TextStyle(
+                              color: OriaTheme.muted,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           children: [
                             const SizedBox(height: 10),
@@ -175,15 +214,47 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             ),
                             const SizedBox(height: 16),
                             ElevatedButton(
-                              onPressed: _loading ? null : _create,
-                              child: Text(_loading ? 'Criando...' : 'Criar e entrar'),
+                              onPressed: _loading || _joining ? null : _create,
+                              child: Text(
+                                _loading ? 'Criando...' : 'Criar e entrar',
+                              ),
                             ),
                           ],
                         ),
                         if (_error != null) ...[
                           const SizedBox(height: 12),
-                          Text(_error!, style: const TextStyle(color: OriaTheme.danger, fontWeight: FontWeight.w700)),
+                          Text(
+                            _error!,
+                            style: const TextStyle(
+                              color: OriaTheme.danger,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                         ],
+                        TextButton.icon(
+                          onPressed: _loading || _joining
+                              ? null
+                              : () async {
+                                  try {
+                                    await AuthService().signOut();
+                                  } catch (_) {
+                                    if (mounted)
+                                      setState(
+                                        () => _error = 'Não consegui sair. Tente novamente.',
+                                      );
+                                  }
+                                },
+                          icon: const Icon(Icons.logout_rounded),
+                          label: const Text('Sair ou trocar de conta'),
+                        ),
+                        const SizedBox(height: 16),
+                        TextButton.icon(
+                          onPressed: _loading || _joining
+                              ? null
+                              : () => AuthService().signOut(),
+                          icon: const Icon(Icons.logout_rounded),
+                          label: const Text('Sair ou trocar de conta'),
+                        ),
                       ],
                     ),
                   ),
@@ -218,7 +289,7 @@ class _Card extends StatelessWidget {
           ),
         ],
       ),
-      child: child,
+      child: Material(type: MaterialType.transparency, child: child),
     );
   }
 }

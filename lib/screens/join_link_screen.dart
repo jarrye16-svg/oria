@@ -1,3 +1,5 @@
+import '../core/friendly_error.dart';
+
 import 'package:flutter/material.dart';
 
 import '../app/theme.dart';
@@ -71,7 +73,7 @@ class _JoinLinkScreenState extends State<JoinLinkScreen> {
 
       setState(() {
         _joining = false;
-        _error = error.toString().replaceFirst('Exception: ', '');
+        _error = friendlyError(error);
       });
     }
   }
@@ -86,7 +88,10 @@ class _JoinLinkScreenState extends State<JoinLinkScreen> {
   @override
   Widget build(BuildContext context) {
     final preview = _preview;
-    final valid = preview != null && preview.status == 'active' && (preview.expiresAt?.isAfter(DateTime.now()) ?? true);
+    final valid =
+        preview != null &&
+        preview.status == 'active' &&
+        (preview.expiresAt?.isAfter(DateTime.now()) ?? true);
 
     return Scaffold(
       backgroundColor: OriaTheme.background,
@@ -120,12 +125,19 @@ class _JoinLinkScreenState extends State<JoinLinkScreen> {
                         color: OriaTheme.surfaceAlt,
                         borderRadius: BorderRadius.circular(26),
                       ),
-                      child: const Icon(Icons.family_restroom_rounded, color: OriaTheme.blue, size: 36),
+                      child: const Icon(
+                        Icons.family_restroom_rounded,
+                        color: OriaTheme.blue,
+                        size: 36,
+                      ),
                     ),
                     const SizedBox(height: 18),
                     const Text(
                       'Entrar na familia',
-                      style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 10),
@@ -137,13 +149,20 @@ class _JoinLinkScreenState extends State<JoinLinkScreen> {
                     else if (preview != null) ...[
                       const Text(
                         'Voce recebeu um link para acessar o grupo:',
-                        style: TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w700),
+                        style: TextStyle(
+                          color: OriaTheme.muted,
+                          fontWeight: FontWeight.w700,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
                       Text(
                         preview.houseName,
-                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: OriaTheme.blueDark),
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          color: OriaTheme.blueDark,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 12),
@@ -160,7 +179,9 @@ class _JoinLinkScreenState extends State<JoinLinkScreen> {
                               : 'Este link ja foi usado, cancelado ou expirou.',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: valid ? OriaTheme.blueDark : OriaTheme.danger,
+                            color: valid
+                                ? OriaTheme.blueDark
+                                : OriaTheme.danger,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -174,7 +195,9 @@ class _JoinLinkScreenState extends State<JoinLinkScreen> {
                     ElevatedButton.icon(
                       onPressed: _loading || _joining || !valid ? null : _join,
                       icon: const Icon(Icons.check_rounded),
-                      label: Text(_joining ? 'Entrando...' : 'Entrar na familia'),
+                      label: Text(
+                        _joining ? 'Entrando...' : 'Entrar na familia',
+                      ),
                     ),
                   ],
                 ),
@@ -203,7 +226,10 @@ class _WarningBox extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: const TextStyle(color: OriaTheme.danger, fontWeight: FontWeight.w800),
+        style: const TextStyle(
+          color: OriaTheme.danger,
+          fontWeight: FontWeight.w800,
+        ),
         textAlign: TextAlign.center,
       ),
     );

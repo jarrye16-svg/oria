@@ -1,3 +1,5 @@
+import '../core/friendly_error.dart';
+
 import 'package:flutter/material.dart';
 
 import '../app/theme.dart';
@@ -26,7 +28,8 @@ class _InviteJoinScreenState extends State<InviteJoinScreen> {
   bool _joining = false;
   String? _error;
 
-  String get _currentEmail => AuthService().currentUser?.email?.toLowerCase().trim() ?? '';
+  String get _currentEmail =>
+      AuthService().currentUser?.email?.toLowerCase().trim() ?? '';
 
   @override
   void initState() {
@@ -54,7 +57,7 @@ class _InviteJoinScreenState extends State<InviteJoinScreen> {
 
       setState(() {
         _loading = false;
-        _error = error.toString().replaceFirst('Exception: ', '');
+        _error = friendlyError(error);
       });
     }
   }
@@ -73,7 +76,7 @@ class _InviteJoinScreenState extends State<InviteJoinScreen> {
 
       setState(() {
         _joining = false;
-        _error = error.toString().replaceFirst('Exception: ', '');
+        _error = friendlyError(error);
       });
     }
   }
@@ -85,7 +88,8 @@ class _InviteJoinScreenState extends State<InviteJoinScreen> {
   @override
   Widget build(BuildContext context) {
     final preview = _preview;
-    final emailMatches = preview == null || preview.email.toLowerCase().trim() == _currentEmail;
+    final emailMatches =
+        preview == null || preview.email.toLowerCase().trim() == _currentEmail;
 
     return Scaffold(
       backgroundColor: OriaTheme.background,
@@ -112,12 +116,19 @@ class _InviteJoinScreenState extends State<InviteJoinScreen> {
                         color: OriaTheme.surfaceAlt,
                         borderRadius: BorderRadius.circular(26),
                       ),
-                      child: const Icon(Icons.family_restroom_rounded, color: OriaTheme.blue, size: 36),
+                      child: const Icon(
+                        Icons.family_restroom_rounded,
+                        color: OriaTheme.blue,
+                        size: 36,
+                      ),
                     ),
                     const SizedBox(height: 18),
                     const Text(
                       'Convite recebido',
-                      style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 10),
@@ -129,18 +140,31 @@ class _InviteJoinScreenState extends State<InviteJoinScreen> {
                     else if (preview != null) ...[
                       Text(
                         'Voce foi convidado para ingressar no grupo:',
-                        style: const TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w700),
+                        style: const TextStyle(
+                          color: OriaTheme.muted,
+                          fontWeight: FontWeight.w700,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
                       Text(
                         preview.houseName,
-                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: OriaTheme.blueDark),
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          color: OriaTheme.blueDark,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),
-                      _InfoLine(label: 'E-mail convidado', value: preview.email),
-                      _InfoLine(label: 'Voce entrou como', value: _currentEmail),
+                      _InfoLine(
+                        label: 'E-mail convidado',
+                        value: preview.email,
+                      ),
+                      _InfoLine(
+                        label: 'Voce entrou como',
+                        value: _currentEmail,
+                      ),
                       if (!emailMatches) ...[
                         const SizedBox(height: 12),
                         const _WarningBox(
@@ -154,9 +178,13 @@ class _InviteJoinScreenState extends State<InviteJoinScreen> {
                     ],
                     const SizedBox(height: 18),
                     ElevatedButton.icon(
-                      onPressed: _loading || _joining || !emailMatches ? null : _join,
+                      onPressed: _loading || _joining || !emailMatches
+                          ? null
+                          : _join,
                       icon: const Icon(Icons.check_rounded),
-                      label: Text(_joining ? 'Ingressando...' : 'Ingressar no grupo'),
+                      label: Text(
+                        _joining ? 'Ingressando...' : 'Ingressar no grupo',
+                      ),
                     ),
                     const SizedBox(height: 8),
                     OutlinedButton.icon(
@@ -187,8 +215,22 @@ class _InfoLine extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 7),
       child: Row(
         children: [
-          Expanded(child: Text(label, style: const TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w700))),
-          Flexible(child: Text(value, textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w900))),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: OriaTheme.muted,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+          ),
         ],
       ),
     );
@@ -211,7 +253,10 @@ class _WarningBox extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: const TextStyle(color: OriaTheme.danger, fontWeight: FontWeight.w800),
+        style: const TextStyle(
+          color: OriaTheme.danger,
+          fontWeight: FontWeight.w800,
+        ),
         textAlign: TextAlign.center,
       ),
     );

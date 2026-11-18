@@ -1,27 +1,8 @@
+import '../core/friendly_error.dart';
 import '../models/house_member_info.dart';
 import 'supabase_service.dart';
 
-String _friendlySupabaseError(Object error) {
-  try {
-    final dynamic dynamicError = error;
-    final message = dynamicError.message?.toString() ?? '';
-    final details = dynamicError.details?.toString() ?? '';
-    final hint = dynamicError.hint?.toString() ?? '';
-    final code = dynamicError.code?.toString() ?? '';
-
-    final parts = <String>[];
-    if (message.isNotEmpty) parts.add(message);
-    if (details.isNotEmpty) parts.add(details);
-    if (hint.isNotEmpty) parts.add('Dica: $hint');
-    if (code.isNotEmpty) parts.add('Codigo: $code');
-
-    if (parts.isNotEmpty) return parts.join(' | ');
-  } catch (_) {
-    // Usa mensagem generica abaixo.
-  }
-
-  return error.toString().replaceFirst('Exception: ', '');
-}
+String _friendlySupabaseError(Object error) => friendlyError(error);
 
 class MemberService {
   Future<List<HouseMemberInfo>> getMembers(String houseId) async {
@@ -31,7 +12,10 @@ class MemberService {
     );
 
     return (data as List)
-        .map((row) => HouseMemberInfo.fromMap(Map<String, dynamic>.from(row as Map)))
+        .map(
+          (row) =>
+              HouseMemberInfo.fromMap(Map<String, dynamic>.from(row as Map)),
+        )
         .toList();
   }
 
@@ -43,7 +27,10 @@ class MemberService {
         .order('created_at', ascending: false);
 
     return (data as List)
-        .map((row) => HouseInviteInfo.fromMap(Map<String, dynamic>.from(row as Map)))
+        .map(
+          (row) =>
+              HouseInviteInfo.fromMap(Map<String, dynamic>.from(row as Map)),
+        )
         .toList();
   }
 
@@ -84,11 +71,7 @@ class MemberService {
     try {
       await supabase.rpc(
         'update_house_member_role',
-        params: {
-          'p_house_id': houseId,
-          'p_user_id': userId,
-          'p_role': role,
-        },
+        params: {'p_house_id': houseId, 'p_user_id': userId, 'p_role': role},
       );
     } catch (error) {
       throw Exception(_friendlySupabaseError(error));
@@ -102,10 +85,7 @@ class MemberService {
     try {
       await supabase.rpc(
         'remove_house_member',
-        params: {
-          'p_house_id': houseId,
-          'p_user_id': userId,
-        },
+        params: {'p_house_id': houseId, 'p_user_id': userId},
       );
     } catch (error) {
       throw Exception(_friendlySupabaseError(error));

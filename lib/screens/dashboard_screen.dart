@@ -48,7 +48,9 @@ class DashboardScreen extends StatelessWidget {
     final isWide = width >= 980;
     final cardExtent = isWide ? 178.0 : 206.0;
 
-    final monthEntries = entries.where((entry) => entry.countsInPlanned).toList();
+    final monthEntries = entries
+        .where((entry) => entry.countsInPlanned)
+        .toList();
 
     final entradas = monthEntries
         .where((entry) => entry.isIncome)
@@ -61,12 +63,16 @@ class DashboardScreen extends StatelessWidget {
     final contasFixas = monthEntries
         .where((entry) {
           final mode = _entryMode(entry);
-          return entry.isExpense && (mode == EntryMode.fixedExpense || mode == EntryMode.financing);
+          return entry.isExpense &&
+              (mode == EntryMode.fixedExpense || mode == EntryMode.financing);
         })
         .fold<double>(0, (sum, entry) => sum + entry.amount);
 
     final cartoes = monthEntries
-        .where((entry) => entry.isExpense && _entryMode(entry) == EntryMode.cardInvoice)
+        .where(
+          (entry) =>
+              entry.isExpense && _entryMode(entry) == EntryMode.cardInvoice,
+        )
         .fold<double>(0, (sum, entry) => sum + entry.amount);
 
     final despesasPrevistas = monthEntries
@@ -92,9 +98,9 @@ class DashboardScreen extends StatelessWidget {
 
     final cards = [
       SummaryCard(
-        title: 'Saldo atual',
+        title: 'Saldo realizado do mês',
         value: money(saldoAtual),
-        subtitle: 'Disponivel no momento',
+        subtitle: 'Recebido menos despesas pagas',
         icon: Icons.account_balance_wallet_rounded,
         success: saldoAtual >= 0,
         danger: saldoAtual < 0,
@@ -180,15 +186,22 @@ class DashboardScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             ..._homeModes.map((mode) {
-              final modeEntries = monthEntries.where((entry) => _entryMode(entry) == mode).toList();
+              final modeEntries = monthEntries
+                  .where((entry) => _entryMode(entry) == mode)
+                  .toList();
 
-              if (modeEntries.isEmpty && mode == EntryMode.goalContribution && goalContributions <= 0) {
+              if (modeEntries.isEmpty &&
+                  mode == EntryMode.goalContribution &&
+                  goalContributions <= 0) {
                 return const SizedBox.shrink();
               }
 
               final total = mode == EntryMode.goalContribution
                   ? goalContributions
-                  : modeEntries.fold<double>(0, (sum, entry) => sum + entry.amount);
+                  : modeEntries.fold<double>(
+                      0,
+                      (sum, entry) => sum + entry.amount,
+                    );
               final paid = modeEntries.where((entry) => entry.isPaid).length;
 
               return Padding(
@@ -206,7 +219,9 @@ class DashboardScreen extends StatelessWidget {
             const SizedBox(height: 12),
             _SectionTitle(
               title: 'Ultimos lancamentos',
-              subtitle: latestEntries.isEmpty ? 'Ainda nao ha lancamentos nesse mes.' : 'Acompanhe os ultimos itens cadastrados.',
+              subtitle: latestEntries.isEmpty
+                  ? 'Ainda nao ha lancamentos nesse mes.'
+                  : 'Acompanhe os ultimos itens cadastrados.',
             ),
             const SizedBox(height: 12),
             if (latestEntries.isEmpty)
@@ -244,11 +259,17 @@ class DashboardScreen extends StatelessWidget {
 
     final name = group?.name.toLowerCase() ?? '';
 
-    if (name.contains('entrada') || name.contains('receita')) return EntryMode.income;
+    if (name.contains('entrada') || name.contains('receita'))
+      return EntryMode.income;
     if (name.contains('cart')) return EntryMode.cardInvoice;
-    if (name.contains('moto') || name.contains('carro') || name.contains('financi')) return EntryMode.financing;
-    if (name.contains('porquinho') || name.contains('meta')) return EntryMode.goalContribution;
-    if (name.contains('terce') || name.contains('outro')) return EntryMode.thirdParty;
+    if (name.contains('moto') ||
+        name.contains('carro') ||
+        name.contains('financi'))
+      return EntryMode.financing;
+    if (name.contains('porquinho') || name.contains('meta'))
+      return EntryMode.goalContribution;
+    if (name.contains('terce') || name.contains('outro'))
+      return EntryMode.thirdParty;
     return EntryMode.fixedExpense;
   }
 }
@@ -277,7 +298,6 @@ class _HeroHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
@@ -407,7 +427,10 @@ class _ModeShortcutCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       '$count itens • $paid pagos',
-                      style: const TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                        color: OriaTheme.muted,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -432,7 +455,10 @@ class _ModeShortcutCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Icon(Icons.chevron_right_rounded, color: OriaTheme.muted),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: OriaTheme.muted,
+                  ),
                 ],
               ),
             ],
@@ -473,11 +499,15 @@ class _RecentEntryTile extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: entry.isIncome ? const Color(0xFFE9FFF1) : const Color(0xFFFFF3F4),
+              color: entry.isIncome
+                  ? const Color(0xFFE9FFF1)
+                  : const Color(0xFFFFF3F4),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(
-              entry.isIncome ? Icons.south_west_rounded : Icons.north_east_rounded,
+              entry.isIncome
+                  ? Icons.south_west_rounded
+                  : Icons.north_east_rounded,
               color: entry.isIncome ? OriaTheme.success : OriaTheme.danger,
             ),
           ),
@@ -486,11 +516,17 @@ class _RecentEntryTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(entry.title, style: const TextStyle(fontWeight: FontWeight.w900)),
+                Text(
+                  entry.title,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   dateLabel(entry.dueDate),
-                  style: const TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    color: OriaTheme.muted,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -505,7 +541,10 @@ class _RecentEntryTile extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: statusColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(999),
@@ -538,9 +577,18 @@ class _SectionTitle extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+        Text(
+          title,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+        ),
         const SizedBox(height: 4),
-        Text(subtitle, style: const TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w600)),
+        Text(
+          subtitle,
+          style: const TextStyle(
+            color: OriaTheme.muted,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ],
     );
   }
@@ -564,7 +612,10 @@ class _ErrorBox extends StatelessWidget {
         ),
         child: Text(
           message,
-          style: const TextStyle(color: OriaTheme.danger, fontWeight: FontWeight.w700),
+          style: const TextStyle(
+            color: OriaTheme.danger,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
     );
@@ -585,7 +636,11 @@ class _EmptyDashboard extends StatelessWidget {
       ),
       child: const Text(
         'Esse mes ainda esta vazio. Use o botao + para lancar entradas, contas, cartoes e porquinhos.',
-        style: TextStyle(color: OriaTheme.muted, height: 1.4, fontWeight: FontWeight.w600),
+        style: TextStyle(
+          color: OriaTheme.muted,
+          height: 1.4,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }

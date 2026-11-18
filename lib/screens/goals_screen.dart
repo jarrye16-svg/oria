@@ -1,3 +1,4 @@
+import '../core/friendly_error.dart';
 
 import 'package:flutter/material.dart';
 
@@ -11,11 +12,7 @@ class GoalsScreen extends StatefulWidget {
   final House house;
   final Future<void> Function() onRefresh;
 
-  const GoalsScreen({
-    super.key,
-    required this.house,
-    required this.onRefresh,
-  });
+  const GoalsScreen({super.key, required this.house, required this.onRefresh});
 
   @override
   State<GoalsScreen> createState() => _GoalsScreenState();
@@ -119,14 +116,17 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Porquinho apagado.')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Porquinho apagado.')));
     } catch (_) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Não consegui apagar este porquinho. Verifique se você é administrador da casa.')),
+        const SnackBar(
+          content: Text(
+            'Não consegui apagar este porquinho. Verifique se você é administrador da casa.',
+          ),
+        ),
       );
     }
   }
@@ -197,7 +197,10 @@ class _GoalsScreenState extends State<GoalsScreen> {
                                 color: OriaTheme.surfaceAlt,
                                 borderRadius: BorderRadius.circular(14),
                               ),
-                              child: const Icon(Icons.savings_rounded, color: OriaTheme.blue),
+                              child: const Icon(
+                                Icons.savings_rounded,
+                                color: OriaTheme.blue,
+                              ),
                             ),
                             const SizedBox(width: 10),
                             Expanded(
@@ -215,7 +218,9 @@ class _GoalsScreenState extends State<GoalsScreen> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    goal.ownerName.isEmpty ? 'Casa' : goal.ownerName,
+                                    goal.ownerName.isEmpty
+                                        ? 'Casa'
+                                        : goal.ownerName,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
@@ -236,7 +241,10 @@ class _GoalsScreenState extends State<GoalsScreen> {
                                   child: IconButton(
                                     tooltip: 'Editar',
                                     onPressed: () => _openGoalForm(goal),
-                                    icon: const Icon(Icons.edit_rounded, size: 20),
+                                    icon: const Icon(
+                                      Icons.edit_rounded,
+                                      size: 20,
+                                    ),
                                     style: IconButton.styleFrom(
                                       backgroundColor: OriaTheme.surfaceAlt,
                                       foregroundColor: OriaTheme.blue,
@@ -250,7 +258,10 @@ class _GoalsScreenState extends State<GoalsScreen> {
                                   child: IconButton(
                                     tooltip: 'Apagar',
                                     onPressed: () => _deleteGoal(goal),
-                                    icon: const Icon(Icons.delete_outline_rounded, size: 20),
+                                    icon: const Icon(
+                                      Icons.delete_outline_rounded,
+                                      size: 20,
+                                    ),
                                     style: IconButton.styleFrom(
                                       backgroundColor: const Color(0xFFFFEDEE),
                                       foregroundColor: OriaTheme.danger,
@@ -316,8 +327,13 @@ class _GoalsScreenState extends State<GoalsScreen> {
                               label: const Text('Aporte'),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: OriaTheme.blue,
-                                side: const BorderSide(color: OriaTheme.cardBorder),
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                side: const BorderSide(
+                                  color: OriaTheme.cardBorder,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(14),
                                 ),
@@ -446,9 +462,19 @@ class _ErrorCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 8),
-          Text(message, style: const TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w600, height: 1.4)),
+          Text(
+            message,
+            style: const TextStyle(
+              color: OriaTheme.muted,
+              fontWeight: FontWeight.w600,
+              height: 1.4,
+            ),
+          ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
             onPressed: onRetry,
@@ -490,9 +516,19 @@ class _EmptyCard extends StatelessWidget {
         children: [
           Icon(icon, color: OriaTheme.blue, size: 34),
           const SizedBox(height: 14),
-          Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 8),
-          Text(message, style: const TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w600, height: 1.4)),
+          Text(
+            message,
+            style: const TextStyle(
+              color: OriaTheme.muted,
+              fontWeight: FontWeight.w600,
+              height: 1.4,
+            ),
+          ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
             onPressed: onPressed,
@@ -527,8 +563,12 @@ class _GoalFormState extends State<_GoalForm> {
     super.initState();
     final g = widget.goal;
     _name.text = g?.name ?? '';
-    _target.text = g == null ? '' : g.targetAmount.toStringAsFixed(2).replaceAll('.', ',');
-    _current.text = g == null ? '0,00' : g.currentAmount.toStringAsFixed(2).replaceAll('.', ',');
+    _target.text = g == null
+        ? ''
+        : g.targetAmount.toStringAsFixed(2).replaceAll('.', ',');
+    _current.text = g == null
+        ? '0,00'
+        : g.currentAmount.toStringAsFixed(2).replaceAll('.', ',');
     _owner.text = g?.ownerName ?? 'Casa';
   }
 
@@ -554,6 +594,10 @@ class _GoalFormState extends State<_GoalForm> {
         ownerName: _owner.text,
       );
       if (mounted) Navigator.of(context).pop(true);
+    } catch (error) {
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(friendlyError(error))));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -576,7 +620,10 @@ class _GoalFormState extends State<_GoalForm> {
             children: [
               Text(
                 widget.goal == null ? 'Nova meta' : 'Editar meta',
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -586,19 +633,31 @@ class _GoalFormState extends State<_GoalForm> {
               const SizedBox(height: 10),
               TextField(
                 controller: _target,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'Valor alvo', prefixText: 'R\$ '),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Valor alvo',
+                  prefixText: 'R\$ ',
+                ),
               ),
               const SizedBox(height: 10),
               TextField(
                 controller: _current,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'Valor atual', prefixText: 'R\$ '),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Valor atual',
+                  prefixText: 'R\$ ',
+                ),
               ),
               const SizedBox(height: 10),
               TextField(
                 controller: _owner,
-                decoration: const InputDecoration(labelText: 'Dono do porquinho'),
+                decoration: const InputDecoration(
+                  labelText: 'Dono do porquinho',
+                ),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
@@ -638,7 +697,15 @@ class _MovementFormState extends State<_MovementForm> {
 
   Future<void> _save() async {
     final amount = parseMoney(_amount.text);
-    if (amount <= 0) return;
+    if (amount <= 0 || !amount.isFinite) return;
+    if (_kind == 'withdraw' && amount > widget.goal.currentAmount) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('O valor da retirada supera o saldo do porquinho.'),
+        ),
+      );
+      return;
+    }
     setState(() => _saving = true);
     try {
       await _service.addMovement(
@@ -649,6 +716,10 @@ class _MovementFormState extends State<_MovementForm> {
         note: _note.text,
       );
       if (mounted) Navigator.of(context).pop(true);
+    } catch (error) {
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(friendlyError(error))));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -685,8 +756,11 @@ class _MovementFormState extends State<_MovementForm> {
             TextField(
               controller: _amount,
               keyboardType: TextInputType.number,
-                inputFormatters: const [MoneyInputFormatter()],
-              decoration: const InputDecoration(labelText: 'Valor', prefixText: 'R\$ '),
+              inputFormatters: const [MoneyInputFormatter()],
+              decoration: const InputDecoration(
+                labelText: 'Valor',
+                prefixText: 'R\$ ',
+              ),
             ),
             const SizedBox(height: 10),
             TextField(

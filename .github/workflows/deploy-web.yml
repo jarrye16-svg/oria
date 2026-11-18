@@ -34,6 +34,12 @@ jobs:
       - name: Analyze
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
+      - name: Test core rules
+        run: dart test/core_regression.dart
+
+      - name: Test Flutter
+        run: flutter test
+
       - name: Build web
         shell: bash
         run: |

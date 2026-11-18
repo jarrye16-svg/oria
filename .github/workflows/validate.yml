@@ -1,0 +1,22 @@
+name: Validate Oria
+on:
+  pull_request:
+  push:
+    branches: ["fix/auth-startup"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: dart test/core_regression.dart
+      - run: flutter test
+      - run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - run: flutter build web --release --base-href /oria/

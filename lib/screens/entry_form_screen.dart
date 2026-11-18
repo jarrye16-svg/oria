@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../app/theme.dart';
 import '../core/formatters.dart';
+import '../core/friendly_error.dart';
+import '../core/request_id.dart';
 import '../core/status.dart';
 import '../models/entry.dart';
 import '../models/entry_group.dart';
@@ -12,7 +14,6 @@ import '../services/auth_service.dart';
 import '../services/card_service.dart';
 import '../services/entry_service.dart';
 import '../services/goal_service.dart';
-
 
 String _entryCardDisplayName(OriaCardModel card) {
   final name = _entryCleanCardName(card.name, card.ownerName);
@@ -84,6 +85,7 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
   DateTime? _dueDate;
   bool _isRecurring = false;
   bool _saving = false;
+  final String _requestId = newRequestId();
 
   List<OriaCardModel> _cards = [];
   List<Goal> _goals = [];
@@ -112,19 +114,26 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
 
     _titleController = TextEditingController(text: entry?.title ?? '');
     _amountController = TextEditingController(
-      text: entry == null ? '' : entry.amount.toStringAsFixed(2).replaceAll('.', ','),
+      text: entry == null
+          ? ''
+          : entry.amount.toStringAsFixed(2).replaceAll('.', ','),
     );
     _notesController = TextEditingController(text: entry?.notes ?? '');
 
-    _mode = entry?.mode ??
+    _mode =
+        entry?.mode ??
         widget.initialMode ??
-        (entry?.type == EntryType.income ? EntryMode.income : EntryMode.fixedExpense);
+        (entry?.type == EntryType.income
+            ? EntryMode.income
+            : EntryMode.fixedExpense);
     _type = entry?.type ?? _typeFromMode(_mode);
     _status = entry?.status ?? _defaultStatusForMode(_mode);
     _groupId = entry?.groupId ?? _defaultGroupId(_type, _mode);
     _cardId = entry?.cardId;
     _goalId = entry?.goalId;
-    _incomeDestination = entry?.goalId != null && _mode == EntryMode.income ? 'goal' : 'home';
+    _incomeDestination = entry?.goalId != null && _mode == EntryMode.income
+        ? 'goal'
+        : 'home';
     _dueDate = entry?.dueDate;
     _isRecurring = entry?.isRecurring ?? false;
 
@@ -155,7 +164,8 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
     super.dispose();
   }
 
-  String _typeFromMode(String mode) => mode == EntryMode.income ? EntryType.income : EntryType.expense;
+  String _typeFromMode(String mode) =>
+      mode == EntryMode.income ? EntryType.income : EntryType.expense;
 
   String _defaultStatusForMode(String mode) {
     return mode == EntryMode.income ? EntryStatus.paid : EntryStatus.pending;
@@ -163,7 +173,11 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
 
   String _statusTitle() {
     if (_isIncome) {
-      return _incomeToGoal ? 'Entrada recebida e enviada ao porquinho' : 'Entrada recebida automaticamente';
+      if (_status != EntryStatus.paid)
+        return 'Entrada prevista, ainda não recebida';
+      return _incomeToGoal
+          ? 'Entrada recebida e enviada ao porquinho'
+          : 'Entrada recebida automaticamente';
     }
 
     return 'Vai entrar como pendente';
@@ -171,6 +185,8 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
 
   String _statusSubtitle() {
     if (_isIncome) {
+      if (_status != EntryStatus.paid)
+        return 'Confirme o recebimento para incluir o valor no saldo realizado e no porquinho.';
       return _incomeToGoal
           ? 'O valor entra como recebido e tambem alimenta o porquinho escolhido.'
           : 'Entradas entram como dinheiro recebido.';
@@ -190,7 +206,9 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
 
     final modeNeedles = needles[mode] ?? const <String>[];
     for (final needle in modeNeedles) {
-      final found = _groups.where((g) => g.kind == type && g.name.toLowerCase().contains(needle)).toList();
+      final found = _groups
+          .where((g) => g.kind == type && g.name.toLowerCase().contains(needle))
+          .toList();
       if (found.isNotEmpty) return found.first.id;
     }
 
@@ -229,7 +247,8 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
               labelText: 'Nome da tag',
               hintText: 'Ex.: Casa, Moto, Mercado',
             ),
-            onSubmitted: (_) => Navigator.of(context).pop(controller.text.trim()),
+            onSubmitted: (_) =>
+                Navigator.of(context).pop(controller.text.trim()),
           ),
           actions: [
             TextButton(
@@ -237,7 +256,8 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
               child: const Text('Cancelar'),
             ),
             FilledButton(
-              onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+              onPressed: () =>
+                  Navigator.of(context).pop(controller.text.trim()),
               child: const Text('Criar'),
             ),
           ],
@@ -268,7 +288,9 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nao consegui criar a tag. Talvez ela ja exista.')),
+        const SnackBar(
+          content: Text('Nao consegui criar a tag. Talvez ela ja exista.'),
+        ),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -283,18 +305,23 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
   }
 
   Future<void> _save() async {
+    if (_saving) return;
     if (!_formKey.currentState!.validate()) return;
 
     if (_isCard && _cardId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Crie ou selecione um cartão antes de salvar.')),
+        const SnackBar(
+          content: Text('Crie ou selecione um cartão antes de salvar.'),
+        ),
       );
       return;
     }
 
     if ((_isGoal || _incomeToGoal) && _goalId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Crie ou selecione um porquinho antes de salvar.')),
+        const SnackBar(
+          content: Text('Crie ou selecione um porquinho antes de salvar.'),
+        ),
       );
       return;
     }
@@ -305,10 +332,13 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
       final amount = parseMoney(_amountController.text);
       final selectedCard = _selectedCard();
       final entryTitle = _isCard
-          ? (selectedCard == null ? 'Cartão de crédito' : _entryCardDisplayName(selectedCard))
+          ? (selectedCard == null
+                ? 'Cartão de crédito'
+                : _entryCardDisplayName(selectedCard))
           : _titleController.text.trim();
 
       await _service.upsertEntry(
+        requestId: _requestId,
         id: widget.entry?.id,
         houseId: widget.house.id,
         groupId: _resolvedGroupId(),
@@ -326,23 +356,14 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
         goalId: (_isGoal || _incomeToGoal) ? _goalId : null,
       );
 
-      if (_incomeToGoal && widget.entry == null) {
-        await _goalService.addMovement(
-          houseId: widget.house.id,
-          goalId: _goalId!,
-          amount: amount,
-          kind: 'deposit',
-          note: 'Entrada direcionada: $entryTitle',
-        );
-      }
+      // The database synchronizes the linked deposit in the same transaction.
 
       if (!mounted) return;
       Navigator.of(context).pop(true);
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nao consegui salvar. Confira os dados e tente novamente.')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(friendlyError(error))));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -358,15 +379,32 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
         title: const Text('Excluir lancamento?'),
         content: Text('Isso vai remover "${entry.title}" deste mes.'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Excluir')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Excluir'),
+          ),
         ],
       ),
     );
 
     if (confirm != true) return;
 
-    await _service.deleteEntry(entry.id);
+    setState(() => _saving = true);
+    try {
+      await _service.deleteEntry(entry.id);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(friendlyError(error))));
+      }
+      return;
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
 
     if (!mounted) return;
     Navigator.of(context).pop(true);
@@ -381,16 +419,22 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
         _status = _defaultStatusForMode(mode);
       }
       _groupId = _defaultGroupId(_type, mode);
-      if (mode == EntryMode.cardInvoice && _cards.isNotEmpty) _cardId ??= _cards.first.id;
-      if (mode == EntryMode.goalContribution && _goals.isNotEmpty) _goalId ??= _goals.first.id;
+      if (mode == EntryMode.cardInvoice && _cards.isNotEmpty)
+        _cardId ??= _cards.first.id;
+      if (mode == EntryMode.goalContribution && _goals.isNotEmpty)
+        _goalId ??= _goals.first.id;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final filteredGroups = _groups.where((group) => group.kind == _type).toList();
+    final filteredGroups = _groups
+        .where((group) => group.kind == _type)
+        .toList();
 
-    if (_usesTag && _groupId != null && !filteredGroups.any((group) => group.id == _groupId)) {
+    if (_usesTag &&
+        _groupId != null &&
+        !filteredGroups.any((group) => group.id == _groupId)) {
       _groupId = filteredGroups.isEmpty ? null : filteredGroups.first.id;
     }
 
@@ -418,24 +462,27 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
               children: [
                 Text(
                   _modeLocked ? _lockedTitle() : 'O que voce vai lancar?',
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   _modeLocked
                       ? 'Esse lancamento ja esta na area certa. Preencha so o necessario.'
                       : 'Escolha o tipo, informe valor e detalhes.',
-                  style: const TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    color: OriaTheme.muted,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 16),
 
                 if (_modeLocked)
                   _LockedModeInfo(mode: _mode)
                 else
-                  _ModePicker(
-                    selected: _mode,
-                    onSelected: _changeMode,
-                  ),
+                  _ModePicker(selected: _mode, onSelected: _changeMode),
 
                 const SizedBox(height: 18),
 
@@ -448,30 +495,50 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
                       hintText: _hintForMode(),
                       prefixIcon: const Icon(Icons.edit_rounded),
                     ),
-                    validator: (value) => (value == null || value.trim().isEmpty) ? 'Informe o nome.' : null,
+                    validator: (value) =>
+                        (value == null || value.trim().isEmpty)
+                        ? 'Informe o nome.'
+                        : null,
                   ),
                   const SizedBox(height: 12),
                 ],
 
                 TextFormField(
                   controller: _amountController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   textInputAction: TextInputAction.next,
                   decoration: const InputDecoration(
                     labelText: 'Valor',
                     prefixText: 'R\$ ',
                     prefixIcon: Icon(Icons.payments_rounded),
                   ),
-                  validator: (value) => parseMoney(value ?? '') <= 0 ? 'Informe um valor valido.' : null,
+                  validator: (value) => parseMoney(value ?? '') <= 0
+                      ? 'Informe um valor valido.'
+                      : null,
                 ),
                 const SizedBox(height: 12),
 
                 if (_isIncome) ...[
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Já recebi este valor'),
+                    value: _status == EntryStatus.paid,
+                    onChanged: _saving
+                        ? null
+                        : (received) => setState(
+                            () => _status = received
+                                ? EntryStatus.paid
+                                : EntryStatus.pending,
+                          ),
+                  ),
                   _IncomeDestinationPicker(
                     selected: _incomeDestination,
                     onSelected: (value) => setState(() {
                       _incomeDestination = value;
-                      if (value == 'goal' && _goals.isNotEmpty) _goalId ??= _goals.first.id;
+                      if (value == 'goal' && _goals.isNotEmpty)
+                        _goalId ??= _goals.first.id;
                     }),
                   ),
                   const SizedBox(height: 12),
@@ -490,12 +557,15 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
                             prefixIcon: Icon(Icons.sell_rounded),
                           ),
                           items: filteredGroups
-                              .map((group) => DropdownMenuItem<String?>(
-                                    value: group.id,
-                                    child: Text(group.name),
-                                  ))
+                              .map(
+                                (group) => DropdownMenuItem<String?>(
+                                  value: group.id,
+                                  child: Text(group.name),
+                                ),
+                              )
                               .toList(),
-                          onChanged: (value) => setState(() => _groupId = value),
+                          onChanged: (value) =>
+                              setState(() => _groupId = value),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -521,10 +591,12 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
                       prefixIcon: Icon(Icons.credit_card_rounded),
                     ),
                     items: _cards
-                        .map((card) => DropdownMenuItem<String?>(
-                              value: card.id,
-                              child: Text(_entryCardDisplayName(card)),
-                            ))
+                        .map(
+                          (card) => DropdownMenuItem<String?>(
+                            value: card.id,
+                            child: Text(_entryCardDisplayName(card)),
+                          ),
+                        )
                         .toList(),
                     onChanged: (value) => setState(() => _cardId = value),
                   ),
@@ -535,15 +607,21 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
                   DropdownButtonFormField<String?>(
                     initialValue: _goalId,
                     decoration: InputDecoration(
-                      labelText: _incomeToGoal ? 'Enviar para qual porquinho?' : 'Porquinho',
-                      helperText: _incomeToGoal ? 'O valor tambem sera somado ao porquinho' : 'Esse lancamento ja entra como porquinho',
+                      labelText: _incomeToGoal
+                          ? 'Enviar para qual porquinho?'
+                          : 'Porquinho',
+                      helperText: _incomeToGoal
+                          ? 'O valor tambem sera somado ao porquinho'
+                          : 'Esse lancamento ja entra como porquinho',
                       prefixIcon: const Icon(Icons.savings_rounded),
                     ),
                     items: _goals
-                        .map((goal) => DropdownMenuItem<String?>(
-                              value: goal.id,
-                              child: Text(goal.name),
-                            ))
+                        .map(
+                          (goal) => DropdownMenuItem<String?>(
+                            value: goal.id,
+                            child: Text(goal.name),
+                          ),
+                        )
                         .toList(),
                     onChanged: (value) => setState(() => _goalId = value),
                   ),
@@ -565,7 +643,10 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
                     leading: const Icon(Icons.event_rounded),
                     title: const Text('Data'),
                     subtitle: Text(dateLabel(_dueDate)),
-                    trailing: TextButton(onPressed: _pickDate, child: const Text('Escolher')),
+                    trailing: TextButton(
+                      onPressed: _pickDate,
+                      child: const Text('Escolher'),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -587,7 +668,9 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
                 SwitchListTile.adaptive(
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Repetir todo mes'),
-                  subtitle: const Text('Para contas, salarios e gastos recorrentes.'),
+                  subtitle: const Text(
+                    'Para contas, salarios e gastos recorrentes.',
+                  ),
                   value: _isRecurring,
                   onChanged: (value) => setState(() => _isRecurring = value),
                 ),
@@ -737,7 +820,11 @@ class _IncomeDestinationPicker extends StatelessWidget {
             ChoiceChip(
               selected: selected == 'home',
               showCheckmark: false,
-              avatar: Icon(Icons.home_rounded, size: 18, color: selected == 'home' ? Colors.white : OriaTheme.blue),
+              avatar: Icon(
+                Icons.home_rounded,
+                size: 18,
+                color: selected == 'home' ? Colors.white : OriaTheme.blue,
+              ),
               label: const Text('Saldo da casa'),
               onSelected: (_) => onSelected('home'),
               selectedColor: OriaTheme.blue,
@@ -751,7 +838,11 @@ class _IncomeDestinationPicker extends StatelessWidget {
             ChoiceChip(
               selected: selected == 'goal',
               showCheckmark: false,
-              avatar: Icon(Icons.savings_rounded, size: 18, color: selected == 'goal' ? Colors.white : OriaTheme.blue),
+              avatar: Icon(
+                Icons.savings_rounded,
+                size: 18,
+                color: selected == 'goal' ? Colors.white : OriaTheme.blue,
+              ),
               label: const Text('Porquinho'),
               onSelected: (_) => onSelected('goal'),
               selectedColor: OriaTheme.blue,
@@ -787,7 +878,9 @@ class _StatusInfo extends StatelessWidget {
       decoration: BoxDecoration(
         color: positive ? const Color(0xFFE9FFF1) : OriaTheme.surfaceAlt,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: positive ? const Color(0xFFBBF7D0) : OriaTheme.cardBorder),
+        border: Border.all(
+          color: positive ? const Color(0xFFBBF7D0) : OriaTheme.cardBorder,
+        ),
       ),
       child: Row(
         children: [
@@ -802,12 +895,19 @@ class _StatusInfo extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(fontWeight: FontWeight.w900, color: OriaTheme.text),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    color: OriaTheme.text,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: const TextStyle(color: OriaTheme.muted, fontSize: 12, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    color: OriaTheme.muted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -822,10 +922,7 @@ class _ModePicker extends StatelessWidget {
   final String selected;
   final ValueChanged<String> onSelected;
 
-  const _ModePicker({
-    required this.selected,
-    required this.onSelected,
-  });
+  const _ModePicker({required this.selected, required this.onSelected});
 
   @override
   Widget build(BuildContext context) {

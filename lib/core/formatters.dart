@@ -1,6 +1,9 @@
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
+import 'money_parser.dart';
+export 'money_parser.dart';
+
 final _moneyFormat = NumberFormat.currency(
   locale: 'pt_BR',
   symbol: 'R\$',
@@ -36,38 +39,21 @@ DateTime nextMonth(DateTime date) => DateTime(date.year, date.month + 1, 1);
 
 String isoDate(DateTime date) => DateFormat('yyyy-MM-dd').format(date);
 
-double parseMoney(String value) {
-  var cleaned = value.trim();
-  if (cleaned.isEmpty) return 0;
-
-  cleaned = cleaned.replaceAll('R\$', '').replaceAll(' ', '');
-
-  // Valor ja formatado no padrao BR: 2.500,00
-  if (cleaned.contains(',')) {
-    cleaned = cleaned.replaceAll('.', '').replaceAll(',', '.');
-    return double.tryParse(cleaned) ?? 0;
-  }
-
-  // Valor simples digitado no Android: 2500 vira 2500.00
-  cleaned = cleaned.replaceAll(RegExp(r'[^0-9.]'), '');
-  return double.tryParse(cleaned) ?? 0;
-}
-
 String formatMoneyInputValue(double value) {
   return _moneyInputFormat.format(value).trim();
 }
 
 String monthYearLabel(DateTime month) => monthLabel(month);
 
-/// Formata dinheiro enquanto digita, pensando no Android:
-/// - 2500 vira 2.500,00
-/// - 10 vira 10,00
-/// - remove caracteres quebrados automaticamente
+/// Preserva a digitação e o cursor; aceita inteiros e até dois centavos.
 class MoneyInputFormatter extends TextInputFormatter {
   const MoneyInputFormatter();
 
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
     final raw = newValue.text.trim();
 
     if (raw.isEmpty) {
@@ -77,20 +63,12 @@ class MoneyInputFormatter extends TextInputFormatter {
       );
     }
 
-    final digits = raw.replaceAll(RegExp(r'[^0-9]'), '');
-    if (digits.isEmpty) {
-      return const TextEditingValue(
-        text: '',
-        selection: TextSelection.collapsed(offset: 0),
-      );
+    // Keep the text and cursor intact: formatting while typing used to
+    // reinterpret the cents added by the formatter as whole currency units.
+    if (RegExp(r'^\d*(?:[.,]\d{0,2})?$').hasMatch(raw) ||
+        (tryParseMoney(raw) ?? -1) >= 0) {
+      return newValue;
     }
-
-    final value = double.tryParse(digits) ?? 0;
-    final formatted = formatMoneyInputValue(value);
-
-    return TextEditingValue(
-      text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
-    );
+    return oldValue;
   }
 }

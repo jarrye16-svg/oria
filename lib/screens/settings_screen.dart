@@ -9,6 +9,7 @@ import '../services/auth_service.dart';
 import '../services/entry_service.dart';
 import '../widgets/page_intro.dart';
 import 'category_settings_screen.dart';
+import 'entry_backup_screen.dart';
 import 'members_screen.dart';
 import 'reports_screen.dart';
 import 'public_share_screen.dart';
@@ -53,9 +54,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final next = monthLabel(nextMonth(widget.month));
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(count == 0
-              ? 'Nada novo para gerar em $next.'
-              : '$count lancamento(s) gerado(s) em $next.'),
+          content: Text(
+            count == 0
+                ? 'Nada novo para gerar em $next.'
+                : '$count lancamento(s) gerado(s) em $next.',
+          ),
         ),
       );
     } catch (_) {
@@ -96,20 +99,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-
   void _openPublicShare() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const PublicShareScreen(),
-      ),
-    );
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const PublicShareScreen()));
   }
 
   void _openMembers() {
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => MembersScreen(house: widget.house),
-      ),
+      MaterialPageRoute(builder: (_) => MembersScreen(house: widget.house)),
     );
   }
 
@@ -128,6 +125,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 18),
           _SettingsActionCard(
+            icon: Icons.save_alt_rounded,
+            title: 'Cópia dos lançamentos',
+            subtitle: 'Exporte ou restaure os lançamentos desta casa em CSV.',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => EntryBackupScreen(
+                  house: widget.house,
+                  onChanged: widget.onRefresh,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _SettingsActionCard(
             icon: Icons.sell_rounded,
             title: 'Categorias editaveis',
             subtitle: 'Crie, edite ou remova categorias de entradas e contas.',
@@ -144,7 +155,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _SettingsActionCard(
             icon: Icons.bar_chart_rounded,
             title: 'Controle mensal',
-            subtitle: 'Veja historico real, previsao, pagos e pendentes do mes.',
+            subtitle:
+                'Veja historico real, previsao, pagos e pendentes do mes.',
             onTap: _openReports,
           ),
           const SizedBox(height: 12),
@@ -158,7 +170,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _SettingsActionCard(
             icon: Icons.group_add_rounded,
             title: 'Membros e convites',
-            subtitle: 'Convide pessoas para acessar tudo que voce ve nessa casa.',
+            subtitle:
+                'Convide pessoas para acessar tudo que voce ve nessa casa.',
             onTap: _openMembers,
           ),
           const SizedBox(height: 18),
@@ -216,9 +229,21 @@ class _SettingsActionCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                      ),
+                    ),
                     const SizedBox(height: 4),
-                    Text(subtitle, style: const TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w600)),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: OriaTheme.muted,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -230,4 +255,3 @@ class _SettingsActionCard extends StatelessWidget {
     );
   }
 }
-
