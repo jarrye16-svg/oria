@@ -75,6 +75,27 @@ void main() {
     expect(houses.calls, 0);
   });
 
+  testWidgets(
+    'authenticated new account chooses a family before seeing forms',
+    (tester) async {
+      await open(tester);
+      await tester.pumpAndSettle();
+      expect(find.byType(OnboardingScreen), findsOneWidget);
+      expect(find.text('Nome da casa'), findsNothing);
+      expect(find.text('Nome da familia'), findsNothing);
+      await tester.tap(find.text('Sim, quero entrar na minha família'));
+      await tester.pumpAndSettle();
+      expect(find.text('Nome da familia'), findsOneWidget);
+      expect(find.text('Nome da casa'), findsNothing);
+      await tester.tap(find.text('Voltar às opções'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Não, quero criar minha casa'));
+      await tester.pumpAndSettle();
+      expect(find.text('Nome da casa'), findsOneWidget);
+      expect(find.text('Nome da familia'), findsNothing);
+    },
+  );
+
   testWidgets('timeout shows retry instead of endless splash or onboarding', (
     tester,
   ) async {
@@ -117,6 +138,7 @@ void main() {
   testWidgets('token refresh does not reload the house', (tester) async {
     await open(tester);
     await tester.pumpAndSettle();
+    expect(find.text('Sair ou trocar de conta'), findsOneWidget);
     auth.events.add(AuthState(AuthChangeEvent.tokenRefreshed, auth.session));
     await tester.pumpAndSettle();
     expect(houses.calls, 1);
