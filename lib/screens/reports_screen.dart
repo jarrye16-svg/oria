@@ -48,7 +48,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
     });
 
     try {
-      final entries = await _entryService.getAllEntries(houseId: widget.house.id);
+      final entries = await _entryService.getAllEntries(
+        houseId: widget.house.id,
+      );
       if (!mounted) return;
 
       setState(() {
@@ -66,12 +68,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
   }
 
-  List<Entry> get _sourceEntries => _allEntries.isEmpty ? widget.entries : _allEntries;
+  List<Entry> get _sourceEntries =>
+      _allEntries.isEmpty ? widget.entries : _allEntries;
 
   List<Entry> get _monthEntries {
     return _sourceEntries.where((entry) {
       final month = monthStart(entry.competenceMonth);
-      return month.year == _selectedMonth.year && month.month == _selectedMonth.month;
+      return month.year == _selectedMonth.year &&
+          month.month == _selectedMonth.month;
     }).toList();
   }
 
@@ -80,22 +84,32 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   double _monthExpenses(DateTime month) {
-    return _sum(_sourceEntries.where((e) {
-      final entryMonth = monthStart(e.competenceMonth);
-      return entryMonth.year == month.year && entryMonth.month == month.month;
-    }), (e) => e.isExpense && e.countsInPlanned);
+    return _sum(
+      _sourceEntries.where((e) {
+        final entryMonth = monthStart(e.competenceMonth);
+        return entryMonth.year == month.year && entryMonth.month == month.month;
+      }),
+      (e) => e.isExpense && e.countsInPlanned,
+    );
   }
 
   double _monthIncome(DateTime month) {
-    return _sum(_sourceEntries.where((e) {
-      final entryMonth = monthStart(e.competenceMonth);
-      return entryMonth.year == month.year && entryMonth.month == month.month;
-    }), (e) => e.isIncome && e.countsInPlanned);
+    return _sum(
+      _sourceEntries.where((e) {
+        final entryMonth = monthStart(e.competenceMonth);
+        return entryMonth.year == month.year && entryMonth.month == month.month;
+      }),
+      (e) => e.isIncome && e.countsInPlanned,
+    );
   }
 
   void _changeMonth(int delta) {
     setState(() {
-      _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + delta, 1);
+      _selectedMonth = DateTime(
+        _selectedMonth.year,
+        _selectedMonth.month + delta,
+        1,
+      );
     });
   }
 
@@ -109,7 +123,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   List<_ReportRow> _byCategory(List<Entry> entries) {
     final map = <String, double>{};
-    for (final entry in entries.where((e) => e.isExpense && e.countsInPlanned)) {
+    for (final entry in entries.where(
+      (e) => e.isExpense && e.countsInPlanned,
+    )) {
       final key = _groupName(entry.groupId);
       map[key] = (map[key] ?? 0) + entry.amount;
     }
@@ -118,7 +134,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   List<_ReportRow> _byCard(List<Entry> entries) {
     final map = <String, double>{};
-    for (final entry in entries.where((e) => e.mode == EntryMode.cardInvoice && e.countsInPlanned)) {
+    for (final entry in entries.where(
+      (e) => e.mode == EntryMode.cardInvoice && e.countsInPlanned,
+    )) {
       map[entry.title] = (map[entry.title] ?? 0) + entry.amount;
     }
     return _rowsFromMap(map);
@@ -144,7 +162,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final points = <_MonthPoint>[];
 
     for (var index = 5; index >= 0; index--) {
-      final month = DateTime(_selectedMonth.year, _selectedMonth.month - index, 1);
+      final month = DateTime(
+        _selectedMonth.year,
+        _selectedMonth.month - index,
+        1,
+      );
       final income = _monthIncome(month);
       final expense = _monthExpenses(month);
 
@@ -153,7 +175,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
           month: month,
           income: income,
           expense: expense,
-          current: month.year == _selectedMonth.year && month.month == _selectedMonth.month,
+          current:
+              month.year == _selectedMonth.year &&
+              month.month == _selectedMonth.month,
         ),
       );
     }
@@ -164,12 +188,22 @@ class _ReportsScreenState extends State<ReportsScreen> {
   @override
   Widget build(BuildContext context) {
     final monthEntries = _monthEntries;
-    final plannedIncome = _sum(monthEntries, (e) => e.isIncome && e.countsInPlanned);
-    final plannedExpense = _sum(monthEntries, (e) => e.isExpense && e.countsInPlanned);
+    final plannedIncome = _sum(
+      monthEntries,
+      (e) => e.isIncome && e.countsInPlanned,
+    );
+    final plannedExpense = _sum(
+      monthEntries,
+      (e) => e.isExpense && e.countsInPlanned,
+    );
     final paidExpense = _sum(monthEntries, (e) => e.isExpense && e.isPaid);
-    final pendingExpense = _sum(monthEntries, (e) => e.isExpense && e.countsInPlanned && !e.isPaid);
+    final pendingExpense = _sum(
+      monthEntries,
+      (e) => e.isExpense && e.countsInPlanned && !e.isPaid,
+    );
     final forecast = plannedIncome - plannedExpense;
-    final realBalance = plannedIncome - paidExpense;
+    final receivedIncome = _sum(monthEntries, (e) => e.isIncome && e.isPaid);
+    final realBalance = receivedIncome - paidExpense;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Controle mensal')),
@@ -196,7 +230,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
               const SizedBox(height: 14),
               _MonthHistoryChart(
                 points: _historyPoints(),
-                onSelect: (month) => setState(() => _selectedMonth = monthStart(month)),
+                onSelect: (month) =>
+                    setState(() => _selectedMonth = monthStart(month)),
               ),
               const SizedBox(height: 14),
               _MonthInvoiceCard(
@@ -211,16 +246,42 @@ class _ReportsScreenState extends State<ReportsScreen> {
               const SizedBox(height: 14),
               _SummaryGrid(
                 cards: [
-                  _ReportCard(title: 'Entradas', value: money(plannedIncome), icon: Icons.trending_up_rounded, good: true),
-                  _ReportCard(title: 'Despesas', value: money(plannedExpense), icon: Icons.receipt_long_rounded, danger: plannedExpense > plannedIncome),
-                  _ReportCard(title: 'Pago', value: money(paidExpense), icon: Icons.verified_rounded, good: true),
-                  _ReportCard(title: 'Pendente', value: money(pendingExpense), icon: Icons.schedule_rounded, danger: pendingExpense > 0),
+                  _ReportCard(
+                    title: 'Entradas',
+                    value: money(plannedIncome),
+                    icon: Icons.trending_up_rounded,
+                    good: true,
+                  ),
+                  _ReportCard(
+                    title: 'Despesas',
+                    value: money(plannedExpense),
+                    icon: Icons.receipt_long_rounded,
+                    danger: plannedExpense > plannedIncome,
+                  ),
+                  _ReportCard(
+                    title: 'Pago',
+                    value: money(paidExpense),
+                    icon: Icons.verified_rounded,
+                    good: true,
+                  ),
+                  _ReportCard(
+                    title: 'Pendente',
+                    value: money(pendingExpense),
+                    icon: Icons.schedule_rounded,
+                    danger: pendingExpense > 0,
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
-              _Breakdown(title: 'Maiores gastos', rows: _topExpenses(monthEntries)),
+              _Breakdown(
+                title: 'Maiores gastos',
+                rows: _topExpenses(monthEntries),
+              ),
               const SizedBox(height: 16),
-              _Breakdown(title: 'Por categoria', rows: _byCategory(monthEntries)),
+              _Breakdown(
+                title: 'Por categoria',
+                rows: _byCategory(monthEntries),
+              ),
               const SizedBox(height: 16),
               _Breakdown(title: 'Por cartao', rows: _byCard(monthEntries)),
             ],
@@ -261,7 +322,13 @@ class _Header extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('CONTROLE MENSAL', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w900)),
+          const Text(
+            'CONTROLE MENSAL',
+            style: TextStyle(
+              color: Colors.white70,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           const SizedBox(height: 8),
           Row(
             children: [
@@ -275,7 +342,11 @@ class _Header extends StatelessWidget {
                 child: Text(
                   monthLabel(month),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white, fontSize: 23, fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 23,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
               IconButton(
@@ -288,8 +359,13 @@ class _Header extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            positive ? 'Mes previsto no positivo.' : 'Atencao: mes previsto no negativo.',
-            style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w700),
+            positive
+                ? 'Mes previsto no positivo.'
+                : 'Atencao: mes previsto no negativo.',
+            style: const TextStyle(
+              color: Colors.white70,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 14),
           Container(
@@ -302,7 +378,13 @@ class _Header extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Previsao do mes', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w800)),
+                const Text(
+                  'Previsao do mes',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   money(forecast),
@@ -325,15 +407,14 @@ class _MonthHistoryChart extends StatelessWidget {
   final List<_MonthPoint> points;
   final void Function(DateTime month) onSelect;
 
-  const _MonthHistoryChart({
-    required this.points,
-    required this.onSelect,
-  });
+  const _MonthHistoryChart({required this.points, required this.onSelect});
 
   @override
   Widget build(BuildContext context) {
     final maxValue = points.fold<double>(0, (max, point) {
-      final pointMax = point.expense > point.income ? point.expense : point.income;
+      final pointMax = point.expense > point.income
+          ? point.expense
+          : point.income;
       return pointMax > max ? pointMax : max;
     });
 
@@ -347,11 +428,17 @@ class _MonthHistoryChart extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Historico real', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+          const Text(
+            'Historico real',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 4),
           const Text(
             'Ultimos meses com entradas e despesas registradas.',
-            style: TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              color: OriaTheme.muted,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 14),
           SizedBox(
@@ -359,8 +446,12 @@ class _MonthHistoryChart extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: points.map((point) {
-                final incomePct = maxValue <= 0 ? 0.0 : (point.income / maxValue).clamp(0.0, 1.0);
-                final expensePct = maxValue <= 0 ? 0.0 : (point.expense / maxValue).clamp(0.0, 1.0);
+                final incomePct = maxValue <= 0
+                    ? 0.0
+                    : (point.income / maxValue).clamp(0.0, 1.0);
+                final expensePct = maxValue <= 0
+                    ? 0.0
+                    : (point.expense / maxValue).clamp(0.0, 1.0);
 
                 return Expanded(
                   child: InkWell(
@@ -368,7 +459,11 @@ class _MonthHistoryChart extends StatelessWidget {
                     onTap: () => onSelect(point.month),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 3),
-                      child: _HistoryBar(point: point, incomePct: incomePct, expensePct: expensePct),
+                      child: _HistoryBar(
+                        point: point,
+                        incomePct: incomePct,
+                        expensePct: expensePct,
+                      ),
                     ),
                   ),
                 );
@@ -402,8 +497,8 @@ class _HistoryBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final incomeHeight = 26 + (95 * incomePct);
-    final expenseHeight = 26 + (95 * expensePct);
+    final incomeHeight = 121 * incomePct;
+    final expenseHeight = 121 * expensePct;
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
@@ -412,7 +507,11 @@ class _HistoryBar extends StatelessWidget {
           fit: BoxFit.scaleDown,
           child: Text(
             money(point.expense),
-            style: const TextStyle(color: OriaTheme.muted, fontSize: 10, fontWeight: FontWeight.w800),
+            style: const TextStyle(
+              color: OriaTheme.muted,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ),
         const SizedBox(height: 6),
@@ -435,7 +534,9 @@ class _HistoryBar extends StatelessWidget {
                 width: 12,
                 height: expenseHeight,
                 decoration: BoxDecoration(
-                  color: point.current ? OriaTheme.blue : const Color(0xFFB8BCC5),
+                  color: point.current
+                      ? OriaTheme.blue
+                      : const Color(0xFFB8BCC5),
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
@@ -447,7 +548,10 @@ class _HistoryBar extends StatelessWidget {
           Container(
             width: 9,
             height: 9,
-            decoration: const BoxDecoration(color: OriaTheme.text, shape: BoxShape.circle),
+            decoration: const BoxDecoration(
+              color: OriaTheme.text,
+              shape: BoxShape.circle,
+            ),
           )
         else
           const SizedBox(height: 9),
@@ -508,25 +612,41 @@ class _MonthInvoiceCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     monthLabel(month),
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: positive ? OriaTheme.success : OriaTheme.danger,
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
                     positive ? 'Positivo' : 'Negativo',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          _InvoiceLine(label: 'Entradas previstas', value: money(plannedIncome)),
-          _InvoiceLine(label: 'Despesas previstas', value: money(plannedExpense)),
+          _InvoiceLine(
+            label: 'Entradas previstas',
+            value: money(plannedIncome),
+          ),
+          _InvoiceLine(
+            label: 'Despesas previstas',
+            value: money(plannedExpense),
+          ),
           _InvoiceLine(label: 'Ja pago', value: money(paidExpense)),
           _InvoiceLine(label: 'Falta pagar', value: money(pendingExpense)),
           const Divider(height: 1),
@@ -561,7 +681,10 @@ class _MonthInvoiceCard extends StatelessWidget {
             ),
             child: Text(
               'Saldo real considerando apenas o que ja foi pago: ${money(realBalance)}',
-              style: const TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w700),
+              style: const TextStyle(
+                color: OriaTheme.muted,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
@@ -583,7 +706,13 @@ class _InvoiceLine extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(label, style: const TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w700)),
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: OriaTheme.muted,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
           Text(value, style: const TextStyle(fontWeight: FontWeight.w900)),
         ],
@@ -633,7 +762,9 @@ class _ReportCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = danger ? OriaTheme.danger : (good ? OriaTheme.success : OriaTheme.blueDark);
+    final color = danger
+        ? OriaTheme.danger
+        : (good ? OriaTheme.success : OriaTheme.blueDark);
 
     return Container(
       padding: const EdgeInsets.all(15),
@@ -647,12 +778,25 @@ class _ReportCard extends StatelessWidget {
         children: [
           Icon(icon, color: color),
           const Spacer(),
-          Text(title, style: const TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w800)),
+          Text(
+            title,
+            style: const TextStyle(
+              color: OriaTheme.muted,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
           const SizedBox(height: 6),
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
-            child: Text(value, style: TextStyle(color: color, fontSize: 22, fontWeight: FontWeight.w900)),
+            child: Text(
+              value,
+              style: TextStyle(
+                color: color,
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
           ),
         ],
       ),
@@ -680,10 +824,19 @@ class _Breakdown extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 12),
           if (rows.isEmpty)
-            const Text('Nada para mostrar neste mes.', style: TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w600))
+            const Text(
+              'Nada para mostrar neste mes.',
+              style: TextStyle(
+                color: OriaTheme.muted,
+                fontWeight: FontWeight.w600,
+              ),
+            )
           else
             ...rows.map((row) {
               final pct = total <= 0 ? 0.0 : row.value / total;
@@ -693,8 +846,19 @@ class _Breakdown extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Expanded(child: Text(row.label, style: const TextStyle(fontWeight: FontWeight.w800))),
-                        Text(money(row.value), style: const TextStyle(fontWeight: FontWeight.w900, color: OriaTheme.blueDark)),
+                        Expanded(
+                          child: Text(
+                            row.label,
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                        Text(
+                          money(row.value),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            color: OriaTheme.blueDark,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 6),
@@ -733,7 +897,10 @@ class _NoticeCard extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: const TextStyle(color: Color(0xFF9A3412), fontWeight: FontWeight.w800),
+        style: const TextStyle(
+          color: Color(0xFF9A3412),
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }
@@ -749,9 +916,19 @@ class _Legend extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
         const SizedBox(width: 6),
-        Text(label, style: const TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w700)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: OriaTheme.muted,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ],
     );
   }

@@ -1,3 +1,5 @@
+import '../core/friendly_error.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -92,7 +94,9 @@ class _MembersScreenState extends State<MembersScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Nao consegui gerar codigo: ${error.toString().replaceFirst('Exception: ', '')}')),
+        SnackBar(
+          content: Text('Nao consegui gerar codigo: ${friendlyError(error)}'),
+        ),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -141,7 +145,7 @@ class _MembersScreenState extends State<MembersScreen> {
     } catch (error) {
       if (!mounted) return;
 
-      final message = error.toString().replaceFirst('Exception: ', '');
+      final message = friendlyError(error);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Erro ao criar convite: $message'),
@@ -159,14 +163,17 @@ class _MembersScreenState extends State<MembersScreen> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Copiado.')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Copiado.')));
     } catch (_) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Não consegui copiar automaticamente. Selecione e copie manualmente.')),
+        const SnackBar(
+          content: Text(
+            'Não consegui copiar automaticamente. Selecione e copie manualmente.',
+          ),
+        ),
       );
     }
   }
@@ -203,7 +210,11 @@ class _MembersScreenState extends State<MembersScreen> {
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Nao consegui alterar a permissao: ${error.toString().replaceFirst('Exception: ', '')}')),
+        SnackBar(
+          content: Text(
+            'Nao consegui alterar a permissao: ${friendlyError(error)}',
+          ),
+        ),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -217,8 +228,14 @@ class _MembersScreenState extends State<MembersScreen> {
         title: const Text('Remover membro?'),
         content: Text('Isso remove o acesso de ${member.email} a esta casa.'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Remover')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Remover'),
+          ),
         ],
       ),
     );
@@ -236,14 +253,19 @@ class _MembersScreenState extends State<MembersScreen> {
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Nao consegui remover o membro: ${error.toString().replaceFirst('Exception: ', '')}')),
+        SnackBar(
+          content: Text(
+            'Nao consegui remover o membro: ${friendlyError(error)}',
+          ),
+        ),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
     }
   }
 
-  String _inviteLink(HouseInviteInfo invite) => _service.buildInviteLink(invite.token);
+  String _inviteLink(HouseInviteInfo invite) =>
+      _service.buildInviteLink(invite.token);
 
   @override
   Widget build(BuildContext context) {
@@ -273,7 +295,9 @@ class _MembersScreenState extends State<MembersScreen> {
                 code: _joinCode,
                 onGenerate: _createJoinCode,
                 joinLink: _lastJoinLink,
-                onCopyCode: _lastJoinLink == null ? null : () => _copy(_lastJoinLink!),
+                onCopyCode: _lastJoinLink == null
+                    ? null
+                    : () => _copy(_lastJoinLink!),
               ),
               const SizedBox(height: 14),
               _InviteCard(
@@ -281,7 +305,9 @@ class _MembersScreenState extends State<MembersScreen> {
                 saving: _saving,
                 onCreate: _createInvite,
                 lastInviteLink: _lastInviteLink,
-                onCopyLast: _lastInviteLink == null ? null : () => _copy(_lastInviteLink!),
+                onCopyLast: _lastInviteLink == null
+                    ? null
+                    : () => _copy(_lastInviteLink!),
               ),
               const SizedBox(height: 14),
               _MembersCard(
@@ -335,11 +361,18 @@ class _JoinCodeCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Entrada por codigo', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+          const Text(
+            'Entrada por codigo',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 8),
           const Text(
             'Gere um link temporario para a pessoa entrar direto nesta familia. O link vale 15 minutos e so pode ser usado uma vez.',
-            style: TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w600, height: 1.4),
+            style: TextStyle(
+              color: OriaTheme.muted,
+              fontWeight: FontWeight.w600,
+              height: 1.4,
+            ),
           ),
           const SizedBox(height: 12),
           Container(
@@ -351,7 +384,10 @@ class _JoinCodeCard extends StatelessWidget {
             ),
             child: Text(
               'Familia: $houseName',
-              style: const TextStyle(color: OriaTheme.blueDark, fontWeight: FontWeight.w900),
+              style: const TextStyle(
+                color: OriaTheme.blueDark,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -371,14 +407,20 @@ class _JoinCodeCard extends StatelessWidget {
               ),
               child: SelectableText(
                 joinLink ?? '',
-                style: const TextStyle(color: OriaTheme.blueDark, fontWeight: FontWeight.w800),
+                style: const TextStyle(
+                  color: OriaTheme.blueDark,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
             const SizedBox(height: 8),
             Center(
               child: Text(
                 'Valido por aproximadamente ${_expiresLabel(code!.expiresAt)} • uso unico',
-                style: const TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                  color: OriaTheme.muted,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
             const SizedBox(height: 10),
@@ -390,7 +432,11 @@ class _JoinCodeCard extends StatelessWidget {
             const SizedBox(height: 8),
             const Text(
               'A pessoa abre o link, entra/cria acesso e confirma a entrada nesta familia.',
-              style: TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w600, height: 1.4),
+              style: TextStyle(
+                color: OriaTheme.muted,
+                fontWeight: FontWeight.w600,
+                height: 1.4,
+              ),
             ),
           ],
         ],
@@ -420,7 +466,10 @@ class _InviteCard extends StatelessWidget {
       child: ExpansionTile(
         tilePadding: EdgeInsets.zero,
         childrenPadding: EdgeInsets.zero,
-        title: const Text('Convite por link/e-mail', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+        title: const Text(
+          'Convite por link/e-mail',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+        ),
         subtitle: const Text(
           'Opcional. Use se quiser travar o convite para um e-mail especifico.',
           style: TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w600),
@@ -445,12 +494,18 @@ class _InviteCard extends StatelessWidget {
             const SizedBox(height: 12),
             const Text(
               'Envie este link para a pessoa. Ela precisa entrar/criar acesso com o mesmo e-mail informado no convite.',
-              style: TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                color: OriaTheme.muted,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const SizedBox(height: 8),
             SelectableText(
               lastInviteLink!,
-              style: const TextStyle(color: OriaTheme.blueDark, fontWeight: FontWeight.w700),
+              style: const TextStyle(
+                color: OriaTheme.blueDark,
+                fontWeight: FontWeight.w700,
+              ),
             ),
             const SizedBox(height: 8),
             OutlinedButton.icon(
@@ -486,10 +541,19 @@ class _MembersCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Acessos', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+          const Text(
+            'Acessos',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 10),
           if (members.isEmpty)
-            const Text('Nenhum membro encontrado.', style: TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w600))
+            const Text(
+              'Nenhum membro encontrado.',
+              style: TextStyle(
+                color: OriaTheme.muted,
+                fontWeight: FontWeight.w600,
+              ),
+            )
           else
             ...members.map((member) {
               final isSelf = member.userId == currentUserId;
@@ -499,7 +563,9 @@ class _MembersCard extends StatelessWidget {
                 contentPadding: EdgeInsets.zero,
                 leading: const CircleAvatar(child: Icon(Icons.person_rounded)),
                 title: Text(
-                  member.fullName?.trim().isNotEmpty == true ? member.fullName! : member.email,
+                  member.fullName?.trim().isNotEmpty == true
+                      ? member.fullName!
+                      : member.email,
                   style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
                 subtitle: Text(
@@ -514,7 +580,11 @@ class _MembersCard extends StatelessWidget {
                         itemBuilder: (context) => [
                           PopupMenuItem(
                             value: 'role',
-                            child: Text(member.role == 'admin' ? 'Tornar membro' : 'Tornar admin'),
+                            child: Text(
+                              member.role == 'admin'
+                                  ? 'Tornar membro'
+                                  : 'Tornar admin',
+                            ),
                           ),
                           const PopupMenuItem(
                             value: 'remove',
@@ -552,18 +622,32 @@ class _InvitesCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Convites por link pendentes', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+          const Text(
+            'Convites por link pendentes',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 10),
           if (active.isEmpty)
-            const Text('Nenhum convite por link pendente.', style: TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w600))
+            const Text(
+              'Nenhum convite por link pendente.',
+              style: TextStyle(
+                color: OriaTheme.muted,
+                fontWeight: FontWeight.w600,
+              ),
+            )
           else
             ...active.map((invite) {
               final link = linkFor(invite);
 
               return ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: const CircleAvatar(child: Icon(Icons.mark_email_unread_rounded)),
-                title: Text(invite.email, style: const TextStyle(fontWeight: FontWeight.w900)),
+                leading: const CircleAvatar(
+                  child: Icon(Icons.mark_email_unread_rounded),
+                ),
+                title: Text(
+                  invite.email,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
                 subtitle: const Text('Link de convite ativo'),
                 trailing: Wrap(
                   children: [
@@ -610,9 +694,22 @@ class _NoticeCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                  ),
+                ),
                 const SizedBox(height: 6),
-                Text(subtitle, style: const TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w600, height: 1.4)),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: OriaTheme.muted,
+                    fontWeight: FontWeight.w600,
+                    height: 1.4,
+                  ),
+                ),
               ],
             ),
           ),

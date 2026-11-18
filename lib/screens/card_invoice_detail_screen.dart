@@ -21,7 +21,8 @@ class CardInvoiceDetailScreen extends StatefulWidget {
   });
 
   @override
-  State<CardInvoiceDetailScreen> createState() => _CardInvoiceDetailScreenState();
+  State<CardInvoiceDetailScreen> createState() =>
+      _CardInvoiceDetailScreenState();
 }
 
 class _CardInvoiceDetailScreenState extends State<CardInvoiceDetailScreen> {
@@ -43,11 +44,18 @@ class _CardInvoiceDetailScreenState extends State<CardInvoiceDetailScreen> {
     return a.title.toLowerCase().compareTo(b.title.toLowerCase());
   }
 
-  double get _total => _entries.where((e) => e.countsInPlanned).fold<double>(0, (s, e) => s + e.amount);
-  double get _paid => _entries.where((e) => e.countsInPlanned && e.isPaid).fold<double>(0, (s, e) => s + e.amount);
+  double get _total => _entries
+      .where((e) => e.countsInPlanned)
+      .fold<double>(0, (s, e) => s + e.amount);
+  double get _paid => _entries
+      .where((e) => e.countsInPlanned && e.isPaid)
+      .fold<double>(0, (s, e) => s + e.amount);
   double get _pending => _total - _paid;
-  int get _paidCount => _entries.where((e) => e.isPaid).length;
-  bool get _allPaid => _entries.isNotEmpty && _entries.every((e) => e.isPaid);
+  int get _paidCount =>
+      _entries.where((e) => e.countsInPlanned && e.isPaid).length;
+  bool get _allPaid =>
+      _entries.any((e) => e.countsInPlanned) &&
+      _entries.where((e) => e.countsInPlanned).every((e) => e.isPaid);
 
   String get _cardName {
     final name = widget.card.name.trim();
@@ -124,11 +132,12 @@ class _CardInvoiceDetailScreenState extends State<CardInvoiceDetailScreen> {
     setState(() => _saving = true);
 
     try {
-      for (final entry in _entries) {
-        if (entry.isPaid != paid) {
-          await _service.setEntryPaid(entry, paid);
-        }
-      }
+      await _service.setEntriesPaid(
+        _entries
+            .where((entry) => entry.countsInPlanned && entry.isPaid != paid)
+            .toList(),
+        paid,
+      );
 
       await widget.onChanged();
 
@@ -144,7 +153,9 @@ class _CardInvoiceDetailScreenState extends State<CardInvoiceDetailScreen> {
                 title: entry.title,
                 amount: entry.amount,
                 type: entry.type,
-                status: paid ? 'paid' : 'pending',
+                status: entry.countsInPlanned
+                    ? (paid ? 'paid' : 'pending')
+                    : entry.status,
                 competenceMonth: entry.competenceMonth,
                 dueDate: entry.dueDate,
                 responsible: entry.responsible,
@@ -161,7 +172,11 @@ class _CardInvoiceDetailScreenState extends State<CardInvoiceDetailScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(paid ? 'Fatura marcada como paga.' : 'Fatura reaberta.')),
+        SnackBar(
+          content: Text(
+            paid ? 'Fatura marcada como paga.' : 'Fatura reaberta.',
+          ),
+        ),
       );
     } catch (_) {
       if (!mounted) return;
@@ -183,9 +198,7 @@ class _CardInvoiceDetailScreenState extends State<CardInvoiceDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: OriaTheme.background,
-      appBar: AppBar(
-        title: const Text('Fatura do cartao'),
-      ),
+      appBar: AppBar(title: const Text('Fatura do cartao')),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(18, 12, 18, 32),
@@ -217,9 +230,17 @@ class _CardInvoiceDetailScreenState extends State<CardInvoiceDetailScreen> {
               ),
             const SizedBox(height: 18),
             ElevatedButton.icon(
-              onPressed: _saving || _entries.isEmpty ? null : () => _setAllPaid(!_allPaid),
-              icon: Icon(_allPaid ? Icons.lock_open_rounded : Icons.check_circle_rounded),
-              label: Text(_saving ? 'Atualizando...' : (_allPaid ? 'Reabrir fatura' : 'Marcar fatura como paga')),
+              onPressed: _saving || _entries.isEmpty
+                  ? null
+                  : () => _setAllPaid(!_allPaid),
+              icon: Icon(
+                _allPaid ? Icons.lock_open_rounded : Icons.check_circle_rounded,
+              ),
+              label: Text(
+                _saving
+                    ? 'Atualizando...'
+                    : (_allPaid ? 'Reabrir fatura' : 'Marcar fatura como paga'),
+              ),
             ),
             const SizedBox(height: 10),
             OutlinedButton.icon(
@@ -261,7 +282,11 @@ class _InvoiceHero extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(28),
         boxShadow: const [
-          BoxShadow(color: OriaTheme.shadow, blurRadius: 14, offset: Offset(0, 6)),
+          BoxShadow(
+            color: OriaTheme.shadow,
+            blurRadius: 14,
+            offset: Offset(0, 6),
+          ),
         ],
       ),
       child: Column(
@@ -269,17 +294,28 @@ class _InvoiceHero extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.credit_card_rounded, color: Colors.white, size: 30),
+              const Icon(
+                Icons.credit_card_rounded,
+                color: Colors.white,
+                size: 30,
+              ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: statusColor,
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
                   status,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                  ),
                 ),
               ),
             ],
@@ -289,22 +325,40 @@ class _InvoiceHero extends StatelessWidget {
             cardName,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.white, fontSize: 25, fontWeight: FontWeight.w900, height: 1.05),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 25,
+              fontWeight: FontWeight.w900,
+              height: 1.05,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             dueLabel,
-            style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w800),
+            style: const TextStyle(
+              color: Colors.white70,
+              fontWeight: FontWeight.w800,
+            ),
           ),
           const SizedBox(height: 18),
-          const Text('Total da fatura', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w800)),
+          const Text(
+            'Total da fatura',
+            style: TextStyle(
+              color: Colors.white70,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
           const SizedBox(height: 3),
           FittedBox(
             alignment: Alignment.centerLeft,
             fit: BoxFit.scaleDown,
             child: Text(
               money(total),
-              style: const TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.w900),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 34,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
         ],
@@ -343,9 +397,21 @@ class _InvoiceSummary extends StatelessWidget {
         children: [
           Row(
             children: [
-              Expanded(child: _SummaryMini(label: 'Pago', value: money(paid), color: OriaTheme.success)),
+              Expanded(
+                child: _SummaryMini(
+                  label: 'Pago',
+                  value: money(paid),
+                  color: OriaTheme.success,
+                ),
+              ),
               const SizedBox(width: 8),
-              Expanded(child: _SummaryMini(label: 'Pendente', value: money(pending), color: OriaTheme.danger)),
+              Expanded(
+                child: _SummaryMini(
+                  label: 'Pendente',
+                  value: money(pending),
+                  color: OriaTheme.danger,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -364,12 +430,18 @@ class _InvoiceSummary extends StatelessWidget {
               Expanded(
                 child: Text(
                   '$paidCount de $totalCount lancamento(s) pago(s)',
-                  style: const TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w700),
+                  style: const TextStyle(
+                    color: OriaTheme.muted,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
               Text(
                 '${(progress * 100).round()}%',
-                style: const TextStyle(color: OriaTheme.blueDark, fontWeight: FontWeight.w900),
+                style: const TextStyle(
+                  color: OriaTheme.blueDark,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ],
           ),
@@ -384,7 +456,11 @@ class _SummaryMini extends StatelessWidget {
   final String value;
   final Color color;
 
-  const _SummaryMini({required this.label, required this.value, required this.color});
+  const _SummaryMini({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -397,12 +473,26 @@ class _SummaryMini extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w800, fontSize: 12)),
+          Text(
+            label,
+            style: const TextStyle(
+              color: OriaTheme.muted,
+              fontWeight: FontWeight.w800,
+              fontSize: 12,
+            ),
+          ),
           const SizedBox(height: 4),
           FittedBox(
             alignment: Alignment.centerLeft,
             fit: BoxFit.scaleDown,
-            child: Text(value, style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.w900)),
+            child: Text(
+              value,
+              style: TextStyle(
+                color: color,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
           ),
         ],
       ),
@@ -435,7 +525,10 @@ class _InvoiceItemsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Lancamentos da fatura', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
+          const Text(
+            'Lancamentos da fatura',
+            style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 8),
           ...entries.map(
             (entry) => _InvoiceEntryTile(
@@ -474,13 +567,19 @@ class _InvoiceEntryTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: paid ? const Color(0xFFE9FFF1) : OriaTheme.surfaceAlt,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: paid ? const Color(0xFFBBF7D0) : OriaTheme.cardBorder),
+        border: Border.all(
+          color: paid ? const Color(0xFFBBF7D0) : OriaTheme.cardBorder,
+        ),
       ),
       child: Row(
         children: [
           IconButton(
             onPressed: saving ? null : onToggle,
-            icon: Icon(paid ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded),
+            icon: Icon(
+              paid
+                  ? Icons.check_circle_rounded
+                  : Icons.radio_button_unchecked_rounded,
+            ),
             color: paid ? OriaTheme.success : OriaTheme.muted,
           ),
           Expanded(
@@ -498,7 +597,11 @@ class _InvoiceEntryTile extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     dateLabel(entry.dueDate),
-                    style: const TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w600, fontSize: 12),
+                    style: const TextStyle(
+                      color: OriaTheme.muted,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ),
@@ -507,7 +610,10 @@ class _InvoiceEntryTile extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             money(entry.amount),
-            style: const TextStyle(color: OriaTheme.blueDark, fontWeight: FontWeight.w900),
+            style: const TextStyle(
+              color: OriaTheme.blueDark,
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ],
       ),
@@ -531,12 +637,18 @@ class _EmptyInvoice extends StatelessWidget {
         children: [
           Icon(Icons.receipt_long_rounded, color: OriaTheme.blue, size: 34),
           SizedBox(height: 10),
-          Text('Nenhum lancamento neste cartao', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+          Text(
+            'Nenhum lancamento neste cartao',
+            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+          ),
           SizedBox(height: 6),
           Text(
             'Quando voce lancar uma compra nesse cartao, ela aparece aqui como parte da fatura.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: OriaTheme.muted, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              color: OriaTheme.muted,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),

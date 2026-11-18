@@ -15,34 +15,55 @@ import 'shell_screen.dart';
 import 'splash_screen.dart';
 
 class AuthGate extends StatefulWidget {
-  const AuthGate({super.key});
+  final AuthService? authService;
+  final HouseService? houseService;
+  final Duration loadTimeout;
+
+  const AuthGate({
+    super.key,
+    this.authService,
+    this.houseService,
+    this.loadTimeout = const Duration(seconds: 15),
+  });
 
   @override
   State<AuthGate> createState() => _AuthGateState();
 }
 
 class _AuthGateState extends State<AuthGate> {
-  final AuthService _auth = AuthService();
-  final HouseService _houseService = HouseService();
+  late final AuthService _auth;
+  late final HouseService _houseService;
 
   StreamSubscription<AuthState>? _subscription;
 
   bool _loading = true;
   Session? _session;
   House? _house;
+  bool _loadFailed = false;
+  int _loadVersion = 0;
   final String? _inviteToken = Uri.base.queryParameters['invite'];
   final String? _joinToken = Uri.base.queryParameters['join'];
-  final bool _passwordResetMode = Uri.base.queryParameters['reset'] == '1' || Uri.base.fragment.contains('type=recovery');
+  bool _passwordResetMode =
+      Uri.base.queryParameters['reset'] == '1' ||
+      Uri.base.fragment.contains('type=recovery');
   bool _inviteHandled = false;
   bool _joinHandled = false;
 
   @override
   void initState() {
     super.initState();
+    _auth = widget.authService ?? AuthService();
+    _houseService = widget.houseService ?? HouseService();
     _session = _auth.currentSession;
     _subscription = _auth.authStateChanges.listen((state) {
       if (!mounted) return;
+      if (state.event == AuthChangeEvent.passwordRecovery) {
+        setState(() => _passwordResetMode = true);
+      }
+      final sameUser = _session?.user.id == state.session?.user.id;
       _session = state.session;
+      // A token refresh must not replace the screen or discard unsaved work.
+      if (sameUser && state.session != null) return;
       _house = null;
       _loadHouse();
     });
@@ -50,6 +71,7 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   Future<void> _loadHouse() async {
+    final version = ++_loadVersion;
     final currentSession = _auth.currentSession;
 
     if (currentSession == null) {
@@ -58,6 +80,7 @@ class _AuthGateState extends State<AuthGate> {
         _session = null;
         _house = null;
         _loading = false;
+        _loadFailed = false;
       });
       return;
     }
@@ -66,27 +89,32 @@ class _AuthGateState extends State<AuthGate> {
       setState(() {
         _session = currentSession;
         _loading = true;
+        _loadFailed = false;
       });
     }
 
     try {
-      final houses = await _houseService.getMyHouses();
-      if (!mounted) return;
+      final houses = await _houseService.getMyHouses().timeout(
+        widget.loadTimeout,
+      );
+      if (!mounted || version != _loadVersion) return;
       setState(() {
         _house = houses.isEmpty ? null : houses.first;
         _loading = false;
       });
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted || version != _loadVersion) return;
       setState(() {
         _house = null;
         _loading = false;
+        _loadFailed = true;
       });
     }
   }
 
   @override
   void dispose() {
+    _loadVersion++;
     _subscription?.cancel();
     super.dispose();
   }
@@ -104,6 +132,7 @@ class _AuthGateState extends State<AuthGate> {
     if (_passwordResetMode) {
       return PasswordResetScreen(
         onDone: () async {
+          _passwordResetMode = false;
           await _loadHouse();
         },
       );
@@ -129,6 +158,29 @@ class _AuthGateState extends State<AuthGate> {
       );
     }
 
+    if (_loadFailed) {
+      return Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Não consegui carregar sua casa. Confira sua conexão e tente novamente.',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: _loadHouse,
+                  child: const Text('Tentar novamente'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     if (_house == null) return OnboardingScreen(onCreated: _loadHouse);
     return ShellScreen(house: _house!);
   }

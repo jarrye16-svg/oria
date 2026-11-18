@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../app/theme.dart';
+import '../core/input_validation.dart';
 import '../services/auth_service.dart';
 import '../widgets/app_logo.dart';
 
@@ -19,7 +20,8 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
+class _LoginScreenState extends State<LoginScreen>
+    with SingleTickerProviderStateMixin {
   final _auth = AuthService();
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
@@ -86,6 +88,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   }
 
   Future<void> _submit() async {
+    if (_loading) return;
     if (!_formKey.currentState!.validate()) return;
 
     FocusScope.of(context).unfocus();
@@ -109,9 +112,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           return;
         }
 
+        if (!mounted) return;
         setState(() {
           _successMessage = true;
-          _message = 'Acesso criado. Agora tente entrar com este e-mail e senha.';
+          _message = 'Confira seu e-mail para confirmar o cadastro. Depois entre com sua senha.';
           _creating = false;
         });
       } else {
@@ -123,6 +127,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         await widget.onLoggedIn();
       }
     } catch (error) {
+      if (!mounted) return;
       setState(() {
         _successMessage = false;
         _message = _friendlyError(error);
@@ -137,13 +142,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   }
 
   Future<void> _resetPassword() async {
+    if (_loading) return;
     final email = _emailController.text.trim();
 
-    if (!email.contains('@')) {
+    if (!validEmail(email)) {
       setState(() {
         _successMessage = false;
         _message = 'Informe o e-mail primeiro.';
-        });
+      });
       return;
     }
 
@@ -158,11 +164,13 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         email: email,
         redirectTo: _passwordResetRedirectUrl(),
       );
+      if (!mounted) return;
       setState(() {
         _successMessage = true;
         _message = 'Se o e-mail estiver cadastrado, enviamos um link para redefinir a senha. Confira tambem o spam/lixo eletronico.';
       });
     } catch (error) {
+      if (!mounted) return;
       setState(() {
         _successMessage = false;
         _message = 'Nao consegui solicitar redefinicao agora.';
@@ -174,7 +182,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
   bool _isAlreadyRegistered(Object error) {
     final raw = error.toString().toLowerCase();
-    return raw.contains('already registered') || raw.contains('user already registered');
+    return raw.contains('already registered') ||
+        raw.contains('user already registered');
   }
 
   String _friendlyError(Object error) {
@@ -196,7 +205,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         return 'Cadastro esta desativado no Supabase.';
       }
 
-      if (message.contains('already registered') || message.contains('user already registered')) {
+      if (message.contains('already registered') ||
+          message.contains('user already registered')) {
         return 'Esse e-mail ja tem cadastro no Oria. Entramos no modo Entrar: use a senha antiga ou toque em Esqueci minha senha.';
       }
 
@@ -209,7 +219,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
     final raw = error.toString().toLowerCase();
 
-    if (raw.contains('already registered') || raw.contains('user already registered')) {
+    if (raw.contains('already registered') ||
+        raw.contains('user already registered')) {
       return 'Esse e-mail ja tem cadastro no Oria. Entramos no modo Entrar: use a senha antiga ou toque em Esqueci minha senha.';
     }
 
@@ -220,7 +231,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       return 'E-mail ou senha invalidos.';
     }
 
-    if (raw.contains('failed to fetch') || raw.contains('xmlhttprequest') || raw.contains('network')) {
+    if (raw.contains('failed to fetch') ||
+        raw.contains('xmlhttprequest') ||
+        raw.contains('network')) {
       return 'Falha de conexao com o Supabase.';
     }
 
@@ -338,7 +351,10 @@ class _LoginCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         'Use o mesmo e-mail do convite. Depois do login, voce confirma a entrada no grupo familiar.',
-                        style: TextStyle(color: OriaTheme.blueDark, fontWeight: FontWeight.w800),
+                        style: TextStyle(
+                          color: OriaTheme.blueDark,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
                   ],
@@ -354,7 +370,9 @@ class _LoginCard extends StatelessWidget {
                   labelText: 'Nome',
                   prefixIcon: Icon(Icons.person_rounded),
                 ),
-                validator: (value) => (value == null || value.trim().length < 2) ? 'Informe seu nome.' : null,
+                validator: (value) => (value == null || value.trim().length < 2)
+                    ? 'Informe seu nome.'
+                    : null,
               ),
               const SizedBox(height: 12),
             ],
@@ -367,7 +385,9 @@ class _LoginCard extends StatelessWidget {
                 labelText: 'E-mail',
                 prefixIcon: Icon(Icons.mail_rounded),
               ),
-              validator: (value) => (value == null || !value.contains('@')) ? 'Informe um e-mail valido.' : null,
+              validator: (value) => (value == null || !validEmail(value))
+                  ? 'Informe um e-mail valido.'
+                  : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -381,19 +401,30 @@ class _LoginCard extends StatelessWidget {
                 labelText: 'Senha',
                 prefixIcon: const Icon(Icons.lock_rounded),
                 suffixIcon: IconButton(
-                  onPressed: () => state.updateState(() => state._obscurePassword = !state._obscurePassword),
+                  onPressed: () => state.updateState(
+                    () => state._obscurePassword = !state._obscurePassword,
+                  ),
                   icon: Icon(
-                    state._obscurePassword ? Icons.visibility_rounded : Icons.visibility_off_rounded,
+                    state._obscurePassword
+                        ? Icons.visibility_rounded
+                        : Icons.visibility_off_rounded,
                   ),
                 ),
               ),
-              validator: (value) => (value == null || value.length < 6) ? 'A senha precisa ter pelo menos 6 caracteres.' : null,
+              validator: (value) => (value == null || value.length < 6)
+                  ? 'A senha precisa ter pelo menos 6 caracteres.'
+                  : null,
             ),
             if (state.widget.inviteMode && !state._creating) ...[
               const SizedBox(height: 10),
               const Text(
                 'Dica: se aparecer que o e-mail ja existe, nao crie outro. Entre com a senha antiga ou redefina a senha.',
-                style: TextStyle(color: OriaTheme.muted, fontSize: 12, fontWeight: FontWeight.w700, height: 1.3),
+                style: TextStyle(
+                  color: OriaTheme.muted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  height: 1.3,
+                ),
               ),
             ],
             const SizedBox(height: 18),
@@ -403,7 +434,10 @@ class _LoginCard extends StatelessWidget {
                   ? const SizedBox(
                       width: 22,
                       height: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.4,
+                        color: Colors.white,
+                      ),
                     )
                   : Text(state._creating ? 'Criar acesso' : 'Entrar'),
             ),
@@ -412,20 +446,26 @@ class _LoginCard extends StatelessWidget {
               onPressed: state._loading
                   ? null
                   : () => state.updateState(() {
-                        state._creating = !state._creating;
-                        state._message = null;
-                        state._successMessage = false;
-                      }),
+                      state._creating = !state._creating;
+                      state._message = null;
+                      state._successMessage = false;
+                    }),
               child: Text(
                 state._creating
                     ? 'Ja tenho acesso'
-                    : (state.widget.inviteMode ? 'Criar novo acesso' : 'Criar meu acesso'),
+                    : (state.widget.inviteMode
+                          ? 'Criar novo acesso'
+                          : 'Criar meu acesso'),
               ),
             ),
             if (!state._creating)
               TextButton(
                 onPressed: state._loading ? null : state._resetPassword,
-                child: Text(state.widget.inviteMode ? 'Nao sei a senha / esqueci minha senha' : 'Esqueci minha senha'),
+                child: Text(
+                  state.widget.inviteMode
+                      ? 'Nao sei a senha / esqueci minha senha'
+                      : 'Esqueci minha senha',
+                ),
               ),
             if (state._message != null) ...[
               const SizedBox(height: 12),
@@ -445,10 +485,7 @@ class _MessageBox extends StatelessWidget {
   final String message;
   final bool success;
 
-  const _MessageBox({
-    required this.message,
-    required this.success,
-  });
+  const _MessageBox({required this.message, required this.success});
 
   @override
   Widget build(BuildContext context) {
@@ -466,7 +503,11 @@ class _MessageBox extends StatelessWidget {
         children: [
           Text(
             message,
-            style: TextStyle(color: fg, fontWeight: FontWeight.w800, height: 1.3),
+            style: TextStyle(
+              color: fg,
+              fontWeight: FontWeight.w800,
+              height: 1.3,
+            ),
           ),
         ],
       ),
