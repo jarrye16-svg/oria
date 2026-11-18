@@ -82,17 +82,17 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(OnboardingScreen), findsOneWidget);
       expect(find.text('Nome da casa'), findsNothing);
-      expect(find.text('Nome da familia'), findsNothing);
-      await tester.tap(find.text('Sim, quero entrar na minha família'));
+      expect(find.text('Nome da família'), findsNothing);
+      await tester.tap(find.text('Entrar em uma família'));
       await tester.pumpAndSettle();
-      expect(find.text('Nome da familia'), findsOneWidget);
+      expect(find.text('Nome da família'), findsOneWidget);
       expect(find.text('Nome da casa'), findsNothing);
-      await tester.tap(find.text('Voltar às opções'));
+      await tester.tap(find.text('Escolher outra opção'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Não, quero criar minha casa'));
+      await tester.tap(find.text('Criar uma casa'));
       await tester.pumpAndSettle();
       expect(find.text('Nome da casa'), findsOneWidget);
-      expect(find.text('Nome da familia'), findsNothing);
+      expect(find.text('Nome da família'), findsNothing);
     },
   );
 
@@ -138,7 +138,7 @@ void main() {
   testWidgets('token refresh does not reload the house', (tester) async {
     await open(tester);
     await tester.pumpAndSettle();
-    expect(find.text('Sair ou trocar de conta'), findsOneWidget);
+    expect(find.text('Sair da conta'), findsOneWidget);
     auth.events.add(AuthState(AuthChangeEvent.tokenRefreshed, auth.session));
     await tester.pumpAndSettle();
     expect(houses.calls, 1);
