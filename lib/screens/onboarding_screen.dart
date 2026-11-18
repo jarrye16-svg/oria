@@ -5,6 +5,8 @@ import '../app/theme.dart';
 import '../services/house_service.dart';
 import '../services/auth_service.dart';
 import '../widgets/app_logo.dart';
+import 'join_link_screen.dart';
+import 'invite_join_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   final Future<void> Function() onCreated;
@@ -20,7 +22,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _controller = TextEditingController(text: 'Minha casa');
   final _familyController = TextEditingController();
   final _codeController = TextEditingController();
+  final _linkController = TextEditingController();
 
+  bool? _joiningFamily;
   bool _loading = false;
   bool _joining = false;
   String? _error;
@@ -30,7 +34,35 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _controller.dispose();
     _familyController.dispose();
     _codeController.dispose();
+    _linkController.dispose();
     super.dispose();
+  }
+
+  Future<void> _openInvitation() async {
+    final uri = Uri.tryParse(_linkController.text.trim());
+    final join = uri?.queryParameters['join'];
+    final invite = uri?.queryParameters['invite'];
+    if (uri == null ||
+        (uri.scheme != 'https' && uri.scheme != 'http') ||
+        uri.origin != Uri.base.origin ||
+        (join?.isNotEmpty != true && invite?.isNotEmpty != true)) {
+      setState(() => _error = 'Cole um link de convite válido do Oria.');
+      return;
+    }
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (routeContext) {
+          Future<void> joined() async {
+            Navigator.of(routeContext).pop();
+            await widget.onCreated();
+          }
+
+          return join?.isNotEmpty == true
+              ? JoinLinkScreen(token: join!, onJoined: joined)
+              : InviteJoinScreen(token: invite!, onJoined: joined);
+        },
+      ),
+    );
   }
 
   Future<void> _create() async {
@@ -119,7 +151,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         const Text(
-                          'Comecar no Oria',
+                          'Você já faz parte de uma família?',
                           style: TextStyle(
                             fontSize: 26,
                             fontWeight: FontWeight.w900,
@@ -127,7 +159,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         ),
                         const SizedBox(height: 8),
                         const Text(
-                          'Crie uma nova casa ou entre em uma familia existente com o codigo do administrador.',
+                          'Sua conta está pronta. Agora escolha como organizar suas finanças no Oria.',
                           style: TextStyle(
                             color: OriaTheme.muted,
                             fontWeight: FontWeight.w600,
@@ -135,92 +167,146 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           ),
                         ),
                         const SizedBox(height: 18),
-                        ExpansionTile(
-                          onExpansionChanged: (_) =>
-                              setState(() => _error = null),
-                          tilePadding: EdgeInsets.zero,
-                          initiallyExpanded: true,
-                          title: const Text(
-                            'Entrar em uma familia',
-                            style: TextStyle(fontWeight: FontWeight.w900),
-                          ),
-                          subtitle: const Text(
-                            'Use o nome da familia e o codigo temporario de 6 digitos.',
-                            style: TextStyle(
-                              color: OriaTheme.muted,
-                              fontWeight: FontWeight.w600,
+                        if (_joiningFamily == null) ...[
+                          FilledButton.icon(
+                            onPressed: () =>
+                                setState(() => _joiningFamily = true),
+                            icon: const Icon(Icons.family_restroom_rounded),
+                            label: const Text(
+                              'Sim, quero entrar na minha família',
                             ),
                           ),
-                          children: [
-                            const SizedBox(height: 10),
-                            TextField(
-                              controller: _familyController,
-                              textInputAction: TextInputAction.next,
-                              decoration: const InputDecoration(
-                                labelText: 'Nome da familia',
-                                hintText: 'Ex.: Familia Dal Magro',
-                                prefixIcon: Icon(Icons.family_restroom_rounded),
+                          const SizedBox(height: 12),
+                          OutlinedButton.icon(
+                            onPressed: () =>
+                                setState(() => _joiningFamily = false),
+                            icon: const Icon(Icons.add_home_rounded),
+                            label: const Text('Não, quero criar minha casa'),
+                          ),
+                        ],
+                        if (_joiningFamily != null)
+                          TextButton(
+                            onPressed: _loading || _joining
+                                ? null
+                                : () => setState(() {
+                                    _joiningFamily = null;
+                                    _error = null;
+                                  }),
+                            child: const Text('Voltar às opções'),
+                          ),
+                        if (_joiningFamily == true)
+                          ExpansionTile(
+                            onExpansionChanged: (_) =>
+                                setState(() => _error = null),
+                            tilePadding: EdgeInsets.zero,
+                            initiallyExpanded: true,
+                            title: const Text(
+                              'Entrar em uma familia',
+                              style: TextStyle(fontWeight: FontWeight.w900),
+                            ),
+                            subtitle: const Text(
+                              'Abra o link enviado pelo administrador ou informe o nome da família e o código temporário abaixo. Você não precisa da senha de outra pessoa.',
+                              style: TextStyle(
+                                color: OriaTheme.muted,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                            const SizedBox(height: 12),
-                            TextField(
-                              controller: _codeController,
-                              keyboardType: TextInputType.number,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
-                              ],
-                              maxLength: 6,
-                              decoration: const InputDecoration(
-                                counterText: '',
-                                labelText: 'Codigo de 6 digitos',
-                                prefixIcon: Icon(Icons.password_rounded),
+                            children: [
+                              const SizedBox(height: 10),
+                              TextField(
+                                controller: _linkController,
+                                keyboardType: TextInputType.url,
+                                decoration: const InputDecoration(
+                                  labelText: 'Link de convite',
+                                  prefixIcon: Icon(Icons.link_rounded),
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 14),
-                            ElevatedButton.icon(
-                              onPressed: _joining || _loading ? null : _join,
-                              icon: const Icon(Icons.login_rounded),
-                              label: Text(
-                                _joining ? 'Entrando...' : 'Entrar na familia',
+                              const SizedBox(height: 12),
+                              FilledButton(
+                                onPressed: _joining || _loading
+                                    ? null
+                                    : _openInvitation,
+                                child: const Text('Continuar com convite'),
                               ),
-                            ),
-                          ],
-                        ),
+                              const SizedBox(height: 18),
+                              const Text('Recebeu apenas um código?'),
+                              const SizedBox(height: 12),
+                              TextField(
+                                controller: _familyController,
+                                textInputAction: TextInputAction.next,
+                                decoration: const InputDecoration(
+                                  labelText: 'Nome da familia',
+                                  hintText: 'Ex.: Familia Dal Magro',
+                                  prefixIcon: Icon(
+                                    Icons.family_restroom_rounded,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              TextField(
+                                controller: _codeController,
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                ],
+                                maxLength: 6,
+                                decoration: const InputDecoration(
+                                  counterText: '',
+                                  labelText: 'Codigo de 6 digitos',
+                                  prefixIcon: Icon(Icons.password_rounded),
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              ElevatedButton.icon(
+                                onPressed: _joining || _loading ? null : _join,
+                                icon: const Icon(Icons.login_rounded),
+                                label: Text(
+                                  _joining
+                                      ? 'Entrando...'
+                                      : 'Entrar na familia',
+                                ),
+                              ),
+                            ],
+                          ),
                         const SizedBox(height: 12),
-                        ExpansionTile(
-                          onExpansionChanged: (_) =>
-                              setState(() => _error = null),
-                          tilePadding: EdgeInsets.zero,
-                          title: const Text(
-                            'Criar uma nova casa',
-                            style: TextStyle(fontWeight: FontWeight.w900),
-                          ),
-                          subtitle: const Text(
-                            'Use se voce vai administrar um novo grupo familiar.',
-                            style: TextStyle(
-                              color: OriaTheme.muted,
-                              fontWeight: FontWeight.w600,
+                        if (_joiningFamily == false)
+                          ExpansionTile(
+                            onExpansionChanged: (_) =>
+                                setState(() => _error = null),
+                            tilePadding: EdgeInsets.zero,
+                            initiallyExpanded: true,
+                            title: const Text(
+                              'Criar uma nova casa',
+                              style: TextStyle(fontWeight: FontWeight.w900),
                             ),
-                          ),
-                          children: [
-                            const SizedBox(height: 10),
-                            TextField(
-                              controller: _controller,
-                              decoration: const InputDecoration(
-                                labelText: 'Nome da casa',
-                                hintText: 'Ex.: Casa Jarrye e Thaissa',
-                                prefixIcon: Icon(Icons.home_rounded),
+                            subtitle: const Text(
+                              'Use se voce vai administrar um novo grupo familiar.',
+                              style: TextStyle(
+                                color: OriaTheme.muted,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: _loading || _joining ? null : _create,
-                              child: Text(
-                                _loading ? 'Criando...' : 'Criar e entrar',
+                            children: [
+                              const SizedBox(height: 10),
+                              TextField(
+                                controller: _controller,
+                                decoration: const InputDecoration(
+                                  labelText: 'Nome da casa',
+                                  hintText: 'Ex.: Casa Jarrye e Thaissa',
+                                  prefixIcon: Icon(Icons.home_rounded),
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
+                              const SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed: _loading || _joining
+                                    ? null
+                                    : _create,
+                                child: Text(
+                                  _loading ? 'Criando...' : 'Criar e entrar',
+                                ),
+                              ),
+                            ],
+                          ),
                         if (_error != null) ...[
                           const SizedBox(height: 12),
                           Text(
@@ -244,14 +330,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                       );
                                   }
                                 },
-                          icon: const Icon(Icons.logout_rounded),
-                          label: const Text('Sair ou trocar de conta'),
-                        ),
-                        const SizedBox(height: 16),
-                        TextButton.icon(
-                          onPressed: _loading || _joining
-                              ? null
-                              : () => AuthService().signOut(),
                           icon: const Icon(Icons.logout_rounded),
                           label: const Text('Sair ou trocar de conta'),
                         ),
