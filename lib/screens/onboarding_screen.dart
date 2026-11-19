@@ -104,8 +104,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       return;
     }
 
-    if (code.replaceAll(RegExp(r'[^0-9]'), '').length != 6) {
-      setState(() => _error = 'Informe o codigo de 6 digitos.');
+    final codeLength = code.replaceAll(RegExp(r'[^0-9]'), '').length;
+    if (codeLength != 6 && codeLength != 8) {
+      setState(() => _error = 'Informe o código de 6 ou 8 dígitos.');
       return;
     }
 
@@ -119,10 +120,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       await widget.onCreated();
     } catch (error) {
       if (!mounted) return;
-      final message = error.toString().toLowerCase();
       setState(
-        () => _error =
-            message.contains('invalido') || message.contains('expirado')
+        () => _error = error is JoinHouseRateLimitException
+            ? 'Muitas tentativas. Aguarde 15 minutos antes de tentar outro código.'
+            : error is JoinHouseInvalidCodeException
             ? 'Código inválido ou expirado. Confira o nome da família e peça um novo código.'
             : 'Não consegui entrar na família agora. Tente novamente em instantes.',
       );
@@ -247,10 +248,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 inputFormatters: [
                                   FilteringTextInputFormatter.digitsOnly,
                                 ],
-                                maxLength: 6,
+                                maxLength: 8,
                                 decoration: const InputDecoration(
                                   counterText: '',
-                                  labelText: 'Código de 6 dígitos',
+                                  labelText: 'Código de 6 ou 8 dígitos',
                                   prefixIcon: Icon(Icons.password_rounded),
                                 ),
                               ),

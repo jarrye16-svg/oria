@@ -136,8 +136,8 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
                               ),
                             ),
                             validator: (value) {
-                              if (value == null || value.length < 6) {
-                                return 'A senha precisa ter pelo menos 6 caracteres.';
+                              if (value == null || value.length < 12) {
+                                return 'A senha precisa ter pelo menos 12 caracteres.';
                               }
                               return null;
                             },

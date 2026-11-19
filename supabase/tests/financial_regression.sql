@@ -3,8 +3,8 @@ begin;
 select set_config('request.jwt.claim.sub',(select id::text from auth.users order by created_at desc limit 1),true);
 set local role authenticated;
 do $$
-declare h uuid; g uuid; e uuid; e2 uuid; e3 uuid; saved_at timestamptz; n numeric;
-  join_code record; data jsonb;
+declare h uuid; g uuid; e uuid; e2 uuid; e3 uuid; i integer; saved_at timestamptz; n numeric;
+  join_code record; data jsonb; join_result jsonb;
 begin
   h:=public.create_house_with_defaults('QA Oria transação temporária');
   insert into public.goals(house_id,name,target_amount,current_amount,owner_name)
@@ -68,12 +68,25 @@ begin
     if SQLERRM not like 'Lançamento inválido%' then raise; end if;
   end;
   select * into join_code from public.create_house_join_code(h);
-  if length(join_code.code)<>6 or length(join_code.token)<32 then raise exception 'QA: convite inválido'; end if;
-  perform public.join_house_with_code('QA Oria transação temporária',join_code.code);
+  if length(join_code.code)<>8 or length(join_code.token)<32 then raise exception 'QA: convite inválido'; end if;
+  join_result:=public.join_house_with_code_limited('QA Oria transação temporária',join_code.code);
+  if join_result->>'ok'<>'true' then raise exception 'QA: entrada por código'; end if;
   if not public.is_house_admin(h) then raise exception 'QA: administrador rebaixado no convite'; end if;
-  if (select status from public.house_join_codes where house_id=h and code=join_code.code)<>'used' then
-    raise exception 'QA: código não consumido';
+  select * into join_code from public.create_house_join_code(h);
+  if public.join_house_with_code('QA Oria transação temporária',join_code.code) is distinct from h then
+    raise exception 'QA: compatibilidade com cliente antigo';
   end if;
+  if public.join_house_with_code('QA Oria transação temporária',join_code.code) is not null then
+    raise exception 'QA: código antigo não consumido';
+  end if;
+
+  for i in 1..3 loop
+    join_result:=public.join_house_with_code_limited('QA família incorreta',join_code.code);
+    if join_result->>'code'<>'invalid_code' then raise exception 'QA: erro de código esperado'; end if;
+  end loop;
+  join_result:=public.join_house_with_code_limited('QA família incorreta',join_code.code);
+  if join_result->>'code'<>'rate_limited' then raise exception 'QA: limite de tentativas não aplicado'; end if;
+
   select * into join_code from public.create_house_join_code(h);
   perform public.accept_house_join_link(join_code.token);
   if not public.is_house_admin(h) then raise exception 'QA: administrador rebaixado no link'; end if;

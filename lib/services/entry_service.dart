@@ -150,6 +150,74 @@ class EntryService {
     }
   }
 
+  Future<void> createInstallments({
+    required List<String> requestIds,
+    required String houseId,
+    required String? groupId,
+    required String title,
+    required double installmentAmount,
+    required int count,
+    required DateTime competenceMonth,
+    required DateTime? dueDate,
+    required String? notes,
+    required String mode,
+  }) async {
+    if (count < 2 || count > 60 || requestIds.length != count) {
+      throw ArgumentError('Informe de 2 a 60 parcelas.');
+    }
+    if (!installmentAmount.isFinite ||
+        installmentAmount <= 0 ||
+        installmentAmount > 9999999999.99) {
+      throw ArgumentError('Informe um valor válido para cada parcela.');
+    }
+
+    final startMonth = monthStart(competenceMonth);
+    final payloads = List<Map<String, dynamic>>.generate(count, (index) {
+      final installmentMonth = DateTime(
+        startMonth.year,
+        startMonth.month + index,
+        1,
+      );
+      final installmentDueMonth = dueDate == null
+          ? null
+          : DateTime(dueDate.year, dueDate.month + index, 1);
+      final installmentDueDate = installmentDueMonth == null
+          ? null
+          : _sameDayInMonth(dueDate, installmentDueMonth);
+
+      return {
+        'id': requestIds[index],
+        'house_id': houseId,
+        'group_id': groupId,
+        'title': '${title.trim()} (${index + 1}/$count)',
+        'amount': installmentAmount,
+        'type': 'expense',
+        'status': 'pending',
+        'competence_month': isoDate(installmentMonth),
+        'due_date': installmentDueDate == null
+            ? null
+            : isoDate(installmentDueDate),
+        'responsible': null,
+        'notes': notes?.trim().isEmpty ?? true ? null : notes!.trim(),
+        'is_recurring': false,
+        'mode': mode,
+        'card_id': null,
+        'goal_id': null,
+        'paid_at': null,
+        'paid_by': null,
+      };
+    });
+
+    await supabase.from('entries').upsert(payloads);
+  }
+
+  DateTime? _sameDayInMonth(DateTime? date, DateTime month) {
+    if (date == null) return null;
+    final lastDay = DateTime(month.year, month.month + 1, 0).day;
+    final day = date.day > lastDay ? lastDay : date.day;
+    return DateTime(month.year, month.month, day);
+  }
+
   Future<void> setEntryPaid(Entry entry, bool paid) async {
     await supabase
         .from('entries')

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../app/theme.dart';
 import '../core/formatters.dart';
@@ -47,6 +48,7 @@ class EntryFormScreen extends StatefulWidget {
   final List<EntryGroup> groups;
   final Entry? entry;
   final String? initialMode;
+  final String? initialCardId;
 
   const EntryFormScreen({
     super.key,
@@ -55,6 +57,7 @@ class EntryFormScreen extends StatefulWidget {
     required this.groups,
     this.entry,
     this.initialMode,
+    this.initialCardId,
   });
 
   @override
@@ -71,6 +74,7 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
   late final TextEditingController _titleController;
   late final TextEditingController _amountController;
   late final TextEditingController _notesController;
+  late final TextEditingController _installmentCountController;
 
   late List<EntryGroup> _groups;
   late String _mode;
@@ -84,8 +88,10 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
   String? _goalId;
   DateTime? _dueDate;
   bool _isRecurring = false;
+  bool _isInstallmentPlan = false;
   bool _saving = false;
   final String _requestId = newRequestId();
+  final List<String> _installmentRequestIds = [];
 
   List<OriaCardModel> _cards = [];
   List<Goal> _goals = [];
@@ -119,6 +125,7 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
           : entry.amount.toStringAsFixed(2).replaceAll('.', ','),
     );
     _notesController = TextEditingController(text: entry?.notes ?? '');
+    _installmentCountController = TextEditingController(text: '2');
 
     _mode =
         entry?.mode ??
@@ -129,7 +136,7 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
     _type = entry?.type ?? _typeFromMode(_mode);
     _status = entry?.status ?? _defaultStatusForMode(_mode);
     _groupId = entry?.groupId ?? _defaultGroupId(_type, _mode);
-    _cardId = entry?.cardId;
+    _cardId = entry?.cardId ?? widget.initialCardId;
     _goalId = entry?.goalId;
     _incomeDestination = entry?.goalId != null && _mode == EntryMode.income
         ? 'goal'
@@ -161,6 +168,7 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
     _titleController.dispose();
     _amountController.dispose();
     _notesController.dispose();
+    _installmentCountController.dispose();
     super.dispose();
   }
 
@@ -337,24 +345,46 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
                 : _entryCardDisplayName(selectedCard))
           : _titleController.text.trim();
 
-      await _service.upsertEntry(
-        requestId: _requestId,
-        id: widget.entry?.id,
-        houseId: widget.house.id,
-        groupId: _resolvedGroupId(),
-        title: entryTitle,
-        amount: amount,
-        type: _type,
-        status: _status,
-        competenceMonth: widget.month,
-        dueDate: _dueDate,
-        responsible: null,
-        notes: _notesController.text,
-        isRecurring: _isRecurring,
-        mode: _mode,
-        cardId: _isCard ? _cardId : null,
-        goalId: (_isGoal || _incomeToGoal) ? _goalId : null,
-      );
+      if (_isInstallmentPlan && _usesTag && widget.entry == null) {
+        final installmentCount =
+            int.tryParse(_installmentCountController.text) ?? 0;
+        while (_installmentRequestIds.length < installmentCount) {
+          _installmentRequestIds.add(
+            _installmentRequestIds.isEmpty ? _requestId : newRequestId(),
+          );
+        }
+        await _service.createInstallments(
+          requestIds: _installmentRequestIds.take(installmentCount).toList(),
+          houseId: widget.house.id,
+          groupId: _resolvedGroupId(),
+          title: entryTitle,
+          installmentAmount: amount,
+          count: installmentCount,
+          competenceMonth: widget.month,
+          dueDate: _dueDate,
+          notes: _notesController.text,
+          mode: _mode,
+        );
+      } else {
+        await _service.upsertEntry(
+          requestId: _requestId,
+          id: widget.entry?.id,
+          houseId: widget.house.id,
+          groupId: _resolvedGroupId(),
+          title: entryTitle,
+          amount: amount,
+          type: _type,
+          status: _status,
+          competenceMonth: widget.month,
+          dueDate: _dueDate,
+          responsible: null,
+          notes: _notesController.text,
+          isRecurring: _isRecurring,
+          mode: _mode,
+          cardId: _isCard ? _cardId : null,
+          goalId: (_isGoal || _incomeToGoal) ? _goalId : null,
+        );
+      }
 
       // The database synchronizes the linked deposit in the same transaction.
 
@@ -415,6 +445,7 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
       _mode = mode;
       _type = _typeFromMode(mode);
       _incomeDestination = 'home';
+      if (mode != EntryMode.fixedExpense) _isInstallmentPlan = false;
       if (widget.entry == null) {
         _status = _defaultStatusForMode(mode);
       }
@@ -509,10 +540,18 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
                     decimal: true,
                   ),
                   textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Valor',
+                  onChanged: _isInstallmentPlan
+                      ? (_) => setState(() {})
+                      : null,
+                  decoration: InputDecoration(
+                    labelText: _isInstallmentPlan
+                        ? 'Valor de cada parcela'
+                        : 'Valor',
+                    helperText: _isInstallmentPlan
+                        ? 'Esse valor será lançado em cada mês.'
+                        : null,
                     prefixText: 'R\$ ',
-                    prefixIcon: Icon(Icons.payments_rounded),
+                    prefixIcon: const Icon(Icons.payments_rounded),
                   ),
                   validator: (value) => parseMoney(value ?? '') <= 0
                       ? 'Informe um valor valido.'
@@ -669,11 +708,84 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Repetir todo mes'),
                   subtitle: const Text(
-                    'Para contas, salarios e gastos recorrentes.',
+                    'Para contas e gastos que continuam sem prazo final.',
                   ),
                   value: _isRecurring,
-                  onChanged: (value) => setState(() => _isRecurring = value),
+                  onChanged: (value) => setState(() {
+                    _isRecurring = value;
+                    if (value) _isInstallmentPlan = false;
+                  }),
                 ),
+                if (_usesTag && widget.entry == null) ...[
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Parcelar esta conta'),
+                    subtitle: const Text(
+                      'Cria uma parcela em cada mês, sem usar cartão.',
+                    ),
+                    secondary: const Icon(Icons.format_list_numbered_rounded),
+                    value: _isInstallmentPlan,
+                    onChanged: (value) => setState(() {
+                      _isInstallmentPlan = value;
+                      if (value) _isRecurring = false;
+                    }),
+                  ),
+                  if (_isInstallmentPlan) ...[
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _installmentCountController,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      decoration: const InputDecoration(
+                        labelText: 'Número de parcelas',
+                        hintText: 'Ex.: 10',
+                        prefixIcon: Icon(Icons.numbers_rounded),
+                        helperText: 'De 2 a 60 parcelas, contando este mês.',
+                      ),
+                      validator: (value) {
+                        final count = int.tryParse(value ?? '');
+                        if (count == null || count < 2 || count > 60) {
+                          return 'Informe de 2 a 60 parcelas.';
+                        }
+                        return null;
+                      },
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    const SizedBox(height: 8),
+                    Builder(
+                      builder: (context) {
+                        final count = int.tryParse(
+                          _installmentCountController.text,
+                        );
+                        if (count == null || count < 2 || count > 60) {
+                          return const SizedBox.shrink();
+                        }
+                        final installmentAmount = parseMoney(
+                          _amountController.text,
+                        );
+                        return Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: OriaTheme.blue.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Text(
+                            '$count parcelas de ${money(installmentAmount)}. '
+                            'Total: ${money(installmentAmount * count)}. '
+                            'A primeira entra em ${monthLabel(widget.month)}.',
+                            style: const TextStyle(
+                              color: OriaTheme.text,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ],
                 const SizedBox(height: 18),
                 ElevatedButton(
                   onPressed: _saving ? null : _save,

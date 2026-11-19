@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/formatters.dart';
+import '../core/status.dart';
 import '../models/entry.dart';
 import '../models/entry_group.dart';
 import '../models/house.dart';
@@ -102,6 +103,22 @@ class _ShellScreenState extends State<ShellScreen> {
     }
   }
 
+  Future<bool> _openCardEntryForm(String cardId) async {
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => EntryFormScreen(
+          house: widget.house,
+          month: _month,
+          groups: _groups,
+          initialMode: EntryMode.cardInvoice,
+          initialCardId: cardId,
+        ),
+      ),
+    );
+
+    return saved == true;
+  }
+
   Future<void> _openModeEntries(String mode) async {
     if (mode == '__paid__') {
       await Navigator.of(context).push(
@@ -189,9 +206,11 @@ class _ShellScreenState extends State<ShellScreen> {
       ),
       CardsScreen(
         house: widget.house,
+        month: _month,
         entries: _entries,
         onRefresh: _load,
         onEditEntry: (entry) => _openEntryForm(entry: entry),
+        onAddEntryForCard: _openCardEntryForm,
       ),
       GoalsScreen(
         house: widget.house,

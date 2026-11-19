@@ -22,13 +22,37 @@ class HouseService {
     required String code,
   }) async {
     final data = await supabase.rpc(
-      'join_house_with_code',
+      'join_house_with_code_limited',
       params: {
         'p_house_name': houseName.trim(),
         'p_code': code.trim(),
       },
     );
 
-    return data as String;
+    if (data is! Map) {
+      throw const FormatException('Resposta inválida ao entrar na família.');
+    }
+
+    final result = Map<String, dynamic>.from(data);
+    if (result['ok'] != true) {
+      if (result['code'] == 'rate_limited') {
+        throw const JoinHouseRateLimitException();
+      }
+      throw const JoinHouseInvalidCodeException();
+    }
+
+    final houseId = result['house_id'];
+    if (houseId is! String || houseId.isEmpty) {
+      throw const FormatException('A resposta não informou a família.');
+    }
+    return houseId;
   }
+}
+
+class JoinHouseRateLimitException implements Exception {
+  const JoinHouseRateLimitException();
+}
+
+class JoinHouseInvalidCodeException implements Exception {
+  const JoinHouseInvalidCodeException();
 }
