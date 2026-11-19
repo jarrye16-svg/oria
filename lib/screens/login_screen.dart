@@ -361,7 +361,9 @@ class _LoginCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              state._creating ? 'Criar acesso' : 'Entrar',
+              state._recoveryCodeSent
+                  ? 'Confira seu e-mail'
+                  : (state._creating ? 'Criar acesso' : 'Entrar'),
               style: const TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.w900,
@@ -371,9 +373,11 @@ class _LoginCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              state.widget.inviteMode
-                  ? 'Voce recebeu um convite. Se ja usou o Oria, entre com sua senha. Se for novo, crie o acesso.'
-                  : 'Acesse o controle financeiro da casa.',
+              state._recoveryCodeSent
+                  ? 'Digite abaixo o código recebido para continuar com a troca da senha.'
+                  : (state.widget.inviteMode
+                        ? 'Voce recebeu um convite. Se ja usou o Oria, entre com sua senha. Se for novo, crie o acesso.'
+                        : 'Acesse o controle financeiro da casa.'),
               style: const TextStyle(
                 color: OriaTheme.muted,
                 fontWeight: FontWeight.w600,
@@ -433,85 +437,7 @@ class _LoginCard extends StatelessWidget {
                   : null,
             ),
             const SizedBox(height: 12),
-            TextFormField(
-              controller: state._passwordController,
-              obscureText: state._obscurePassword,
-              autofillHints: const [AutofillHints.password],
-              onFieldSubmitted: (_) {
-                if (!state._loading) state._submit();
-              },
-              decoration: InputDecoration(
-                labelText: 'Senha',
-                prefixIcon: const Icon(Icons.lock_rounded),
-                suffixIcon: IconButton(
-                  onPressed: () => state.updateState(
-                    () => state._obscurePassword = !state._obscurePassword,
-                  ),
-                  icon: Icon(
-                    state._obscurePassword
-                        ? Icons.visibility_rounded
-                        : Icons.visibility_off_rounded,
-                  ),
-                ),
-              ),
-              validator: (value) => (value == null || value.length < 6)
-                  ? 'A senha precisa ter pelo menos 6 caracteres.'
-                  : null,
-            ),
-            if (state.widget.inviteMode && !state._creating) ...[
-              const SizedBox(height: 10),
-              const Text(
-                'Dica: se aparecer que o e-mail ja existe, nao crie outro. Entre com a senha antiga ou redefina a senha.',
-                style: TextStyle(
-                  color: OriaTheme.muted,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  height: 1.3,
-                ),
-              ),
-            ],
-            const SizedBox(height: 18),
-            ElevatedButton(
-              onPressed: state._loading ? null : state._submit,
-              child: state._loading
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.4,
-                        color: Colors.white,
-                      ),
-                    )
-                  : Text(state._creating ? 'Criar acesso' : 'Entrar'),
-            ),
-            const SizedBox(height: 10),
-            TextButton(
-              onPressed: state._loading
-                  ? null
-                  : () => state.updateState(() {
-                      state._creating = !state._creating;
-                      state._message = null;
-                      state._successMessage = false;
-                    }),
-              child: Text(
-                state._creating
-                    ? 'Ja tenho acesso'
-                    : (state.widget.inviteMode
-                          ? 'Criar novo acesso'
-                          : 'Criar meu acesso'),
-              ),
-            ),
-            if (!state._creating)
-              TextButton(
-                onPressed: state._loading ? null : state._resetPassword,
-                child: Text(
-                  state.widget.inviteMode
-                      ? 'Nao sei a senha / esqueci minha senha'
-                      : 'Esqueci minha senha',
-                ),
-              ),
-            if (state._recoveryCodeSent && !state._creating) ...[
-              const SizedBox(height: 8),
+            if (state._recoveryCodeSent) ...[
               TextField(
                 controller: state._recoveryCodeController,
                 keyboardType: TextInputType.number,
@@ -527,6 +453,97 @@ class _LoginCard extends StatelessWidget {
                 onPressed: state._loading ? null : state._verifyRecoveryCode,
                 child: Text(state._loading ? 'Validando...' : 'Validar código'),
               ),
+              TextButton(
+                onPressed: state._loading
+                    ? null
+                    : () => state.updateState(() {
+                        state._recoveryCodeSent = false;
+                        state._recoveryCodeController.clear();
+                        state._message = null;
+                      }),
+                child: const Text('Voltar para entrar'),
+              ),
+            ] else
+              TextFormField(
+                controller: state._passwordController,
+                obscureText: state._obscurePassword,
+                autofillHints: const [AutofillHints.password],
+                onFieldSubmitted: (_) {
+                  if (!state._loading) state._submit();
+                },
+                decoration: InputDecoration(
+                  labelText: 'Senha',
+                  prefixIcon: const Icon(Icons.lock_rounded),
+                  suffixIcon: IconButton(
+                    onPressed: () => state.updateState(
+                      () => state._obscurePassword = !state._obscurePassword,
+                    ),
+                    icon: Icon(
+                      state._obscurePassword
+                          ? Icons.visibility_rounded
+                          : Icons.visibility_off_rounded,
+                    ),
+                  ),
+                ),
+                validator: (value) => (value == null || value.length < 6)
+                    ? 'A senha precisa ter pelo menos 6 caracteres.'
+                    : null,
+              ),
+            if (!state._recoveryCodeSent &&
+                state.widget.inviteMode &&
+                !state._creating) ...[
+              const SizedBox(height: 10),
+              const Text(
+                'Dica: se aparecer que o e-mail ja existe, nao crie outro. Entre com a senha antiga ou redefina a senha.',
+                style: TextStyle(
+                  color: OriaTheme.muted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  height: 1.3,
+                ),
+              ),
+            ],
+            if (!state._recoveryCodeSent) ...[
+              const SizedBox(height: 18),
+              ElevatedButton(
+                onPressed: state._loading ? null : state._submit,
+                child: state._loading
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.4,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(state._creating ? 'Criar acesso' : 'Entrar'),
+              ),
+              const SizedBox(height: 10),
+              TextButton(
+                onPressed: state._loading
+                    ? null
+                    : () => state.updateState(() {
+                        state._creating = !state._creating;
+                        state._message = null;
+                        state._successMessage = false;
+                      }),
+                child: Text(
+                  state._creating
+                      ? 'Ja tenho acesso'
+                      : (state.widget.inviteMode
+                            ? 'Criar novo acesso'
+                            : 'Criar meu acesso'),
+                ),
+              ),
+              if (!state._creating)
+                TextButton(
+                  onPressed: state._loading ? null : state._resetPassword,
+                  child: Text(
+                    state.widget.inviteMode
+                        ? 'Nao sei a senha / esqueci minha senha'
+                        : 'Esqueci minha senha',
+                  ),
+                ),
             ],
             if (state._message != null) ...[
               const SizedBox(height: 12),
