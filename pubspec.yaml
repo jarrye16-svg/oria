@@ -21,5 +21,16 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  licenses:
+    - assets/fonts/OFL-Roboto.txt
+
   assets:
     - assets/images/oria_logo.png
+
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto-Variable.ttf
+          weight: 400
+        - asset: assets/fonts/Roboto-Variable.ttf
+          weight: 700
