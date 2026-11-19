@@ -175,9 +175,22 @@ class _LoginScreenState extends State<LoginScreen>
       });
     } catch (error) {
       if (!mounted) return;
+      final raw = error.toString().toLowerCase();
       setState(() {
         _successMessage = false;
-        _message = 'Nao consegui solicitar redefinicao agora.';
+        _message =
+            raw.contains('over_email_send_rate_limit') ||
+                raw.contains('over_request_rate_limit') ||
+                raw.contains('rate limit') ||
+                raw.contains('security purposes')
+            ? 'O Supabase limita pedidos seguidos. Aguarde 1 minuto e solicite outro código.'
+            : raw.contains('redirect') || raw.contains('url not allowed')
+            ? 'O endereço de retorno da recuperação não está autorizado no Supabase.'
+            : raw.contains('network') ||
+                  raw.contains('failed to fetch') ||
+                  raw.contains('xmlhttprequest')
+            ? 'Sem conexão com o serviço de recuperação. Confira a internet e tente novamente.'
+            : 'Não consegui enviar o código agora. Aguarde um minuto e tente novamente.';
       });
     } finally {
       if (mounted) setState(() => _loading = false);
