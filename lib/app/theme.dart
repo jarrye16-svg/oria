@@ -28,7 +28,7 @@ class OriaTheme {
       colorScheme: scheme,
       useMaterial3: true,
       scaffoldBackgroundColor: background,
-      fontFamily: 'Roboto',
+      fontFamily: 'OriaSans',
     );
 
     return base.copyWith(

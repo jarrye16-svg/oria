@@ -28,7 +28,7 @@ flutter:
     - assets/images/oria_logo.png
 
   fonts:
-    - family: Roboto
+    - family: OriaSans
       fonts:
         - asset: assets/fonts/Roboto-Variable.ttf
           weight: 400
