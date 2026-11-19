@@ -48,6 +48,7 @@ class EntryFormScreen extends StatefulWidget {
   final List<EntryGroup> groups;
   final Entry? entry;
   final String? initialMode;
+  final String? initialCardId;
 
   const EntryFormScreen({
     super.key,
@@ -56,6 +57,7 @@ class EntryFormScreen extends StatefulWidget {
     required this.groups,
     this.entry,
     this.initialMode,
+    this.initialCardId,
   });
 
   @override
@@ -134,7 +136,7 @@ class _EntryFormScreenState extends State<EntryFormScreen> {
     _type = entry?.type ?? _typeFromMode(_mode);
     _status = entry?.status ?? _defaultStatusForMode(_mode);
     _groupId = entry?.groupId ?? _defaultGroupId(_type, _mode);
-    _cardId = entry?.cardId;
+    _cardId = entry?.cardId ?? widget.initialCardId;
     _goalId = entry?.goalId;
     _incomeDestination = entry?.goalId != null && _mode == EntryMode.income
         ? 'goal'

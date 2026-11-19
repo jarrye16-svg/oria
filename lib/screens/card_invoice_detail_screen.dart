@@ -8,16 +8,20 @@ import '../services/entry_service.dart';
 
 class CardInvoiceDetailScreen extends StatefulWidget {
   final OriaCardModel card;
+  final DateTime month;
   final List<Entry> entries;
   final Future<void> Function() onChanged;
   final Future<void> Function(Entry entry) onEditEntry;
+  final Future<bool> Function() onAddEntry;
 
   const CardInvoiceDetailScreen({
     super.key,
     required this.card,
+    required this.month,
     required this.entries,
     required this.onChanged,
     required this.onEditEntry,
+    required this.onAddEntry,
   });
 
   @override
@@ -194,6 +198,37 @@ class _CardInvoiceDetailScreenState extends State<CardInvoiceDetailScreen> {
     Navigator.of(context).pop();
   }
 
+  Future<void> _addEntry() async {
+    setState(() => _saving = true);
+
+    try {
+      final saved = await widget.onAddEntry();
+      if (saved != true || !mounted) return;
+
+      await widget.onChanged();
+      final entries = await _service.getEntries(
+        houseId: widget.card.houseId,
+        month: widget.month,
+      );
+      if (!mounted) return;
+
+      setState(() {
+        _entries = entries
+            .where((entry) =>
+                entry.cardId == widget.card.id && entry.countsInPlanned)
+            .toList()
+          ..sort(_sortEntries);
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nao consegui atualizar a fatura.')),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -217,6 +252,12 @@ class _CardInvoiceDetailScreenState extends State<CardInvoiceDetailScreen> {
               pending: _pending,
               paidCount: _paidCount,
               totalCount: _entries.length,
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _saving ? null : _addEntry,
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Adicionar compra à fatura'),
             ),
             const SizedBox(height: 12),
             if (_entries.isEmpty)

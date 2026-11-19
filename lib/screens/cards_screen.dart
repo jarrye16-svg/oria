@@ -10,16 +10,20 @@ import 'card_invoice_detail_screen.dart';
 
 class CardsScreen extends StatefulWidget {
   final House house;
+  final DateTime month;
   final List<Entry> entries;
   final Future<void> Function() onRefresh;
   final Future<void> Function(Entry entry) onEditEntry;
+  final Future<bool> Function(String cardId) onAddEntryForCard;
 
   const CardsScreen({
     super.key,
     required this.house,
+    required this.month,
     required this.entries,
     required this.onRefresh,
     required this.onEditEntry,
+    required this.onAddEntryForCard,
   });
 
   @override
@@ -116,9 +120,11 @@ class _CardsScreenState extends State<CardsScreen> {
       MaterialPageRoute(
         builder: (_) => CardInvoiceDetailScreen(
           card: card,
+          month: widget.month,
           entries: _cardEntries(card.id),
           onChanged: _reload,
           onEditEntry: _editEntry,
+          onAddEntry: () => widget.onAddEntryForCard(card.id),
         ),
       ),
     );
