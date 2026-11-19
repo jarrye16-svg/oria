@@ -20,6 +20,7 @@ class SettingsScreen extends StatefulWidget {
   final List<EntryGroup> groups;
   final List<Entry> entries;
   final Future<void> Function() onRefresh;
+  final VoidCallback? onSwitchHouse;
 
   const SettingsScreen({
     super.key,
@@ -28,6 +29,7 @@ class SettingsScreen extends StatefulWidget {
     required this.groups,
     required this.entries,
     required this.onRefresh,
+    this.onSwitchHouse,
   });
 
   @override
@@ -175,8 +177,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 24),
           _SettingsSection(
             title: 'Casa e pessoas',
-            subtitle: 'Acesso compartilhado e categorias da casa.',
+            subtitle: 'Alterne entre casas e gerencie o acesso compartilhado.',
             children: [
+              if (widget.onSwitchHouse != null)
+                _SettingsTile(
+                  icon: Icons.swap_horiz_rounded,
+                  title: 'Minhas casas e famílias',
+                  subtitle: 'Troque de casa ou entre em outra família com esta conta.',
+                  onTap: widget.onSwitchHouse,
+                ),
               _SettingsTile(
                 icon: Icons.group_add_rounded,
                 title: 'Membros e convites',
@@ -246,7 +255,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _SettingsTile(
                 icon: Icons.ios_share_rounded,
                 title: 'Compartilhar o Oria',
-                subtitle: 'A outra pessoa cria a própria conta e a própria casa.',
+                subtitle: 'A pessoa cria sua conta e pode entrar em outra família.',
                 onTap: _openPublicShare,
               ),
             ],

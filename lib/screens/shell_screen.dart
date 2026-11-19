@@ -18,8 +18,9 @@ import 'settings_screen.dart';
 
 class ShellScreen extends StatefulWidget {
   final House house;
+  final VoidCallback? onSwitchHouse;
 
-  const ShellScreen({super.key, required this.house});
+  const ShellScreen({super.key, required this.house, this.onSwitchHouse});
 
   @override
   State<ShellScreen> createState() => _ShellScreenState();
@@ -188,6 +189,7 @@ class _ShellScreenState extends State<ShellScreen> {
         onPreviousMonth: () => _changeMonth(-1),
         onNextMonth: () => _changeMonth(1),
         onRefresh: _load,
+        onSwitchHouse: widget.onSwitchHouse,
         onAdd: () => _openEntryForm(),
         onOpenMode: _openModeEntries,
         onAddForMode: (mode) => _openEntryForm(initialMode: mode),
@@ -222,6 +224,7 @@ class _ShellScreenState extends State<ShellScreen> {
         groups: _groups,
         entries: _entries,
         onRefresh: _load,
+        onSwitchHouse: widget.onSwitchHouse,
       ),
     ];
 
