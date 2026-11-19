@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../app/theme.dart';
@@ -236,6 +237,36 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
+  Future<void> _pasteRecoveryCode() async {
+    try {
+      final clipboard = await Clipboard.getData(Clipboard.kTextPlain);
+      if (!mounted) return;
+      final match = RegExp(r'(?<!\d)\d{6,8}(?!\d)')
+          .firstMatch(clipboard?.text ?? '');
+      if (match == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Não encontrei um código no clipboard.'),
+          ),
+        );
+        return;
+      }
+      setState(() {
+        _recoveryCodeController.text = match.group(0)!;
+        _message = null;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Não consegui ler o clipboard. Cole o código manualmente.',
+          ),
+        ),
+      );
+    }
+  }
+
   bool _isAlreadyRegistered(Object error) {
     final raw = error.toString().toLowerCase();
     return raw.contains('already registered') ||
@@ -460,6 +491,12 @@ class _LoginCard extends StatelessWidget {
                   labelText: 'Código recebido por e-mail',
                   prefixIcon: Icon(Icons.password_rounded),
                 ),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: state._loading ? null : state._pasteRecoveryCode,
+                icon: const Icon(Icons.content_paste_rounded),
+                label: const Text('Colar código'),
               ),
               const SizedBox(height: 10),
               FilledButton(
