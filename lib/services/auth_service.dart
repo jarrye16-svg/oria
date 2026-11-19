@@ -17,7 +17,9 @@ class AuthService {
     );
 
     if (response.session == null || response.user == null) {
-      throw const AuthException('Login nao retornou sessao. Verifique confirmacao de e-mail e credenciais.');
+      throw const AuthException(
+        'Login nao retornou sessao. Verifique confirmacao de e-mail e credenciais.',
+      );
     }
 
     return response;
@@ -51,10 +53,19 @@ class AuthService {
     );
   }
 
-  Future<void> updatePassword(String password) async {
-    await supabase.auth.updateUser(
-      UserAttributes(password: password),
+  Future<void> verifyRecoveryCode({
+    required String email,
+    required String code,
+  }) async {
+    await supabase.auth.verifyOTP(
+      type: OtpType.recovery,
+      email: email.trim().toLowerCase(),
+      token: code.trim(),
     );
+  }
+
+  Future<void> updatePassword(String password) async {
+    await supabase.auth.updateUser(UserAttributes(password: password));
   }
 
   Future<void> signOut() => supabase.auth.signOut();

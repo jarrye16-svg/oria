@@ -27,6 +27,7 @@ class _LoginScreenState extends State<LoginScreen>
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _recoveryCodeController = TextEditingController();
 
   late final AnimationController _controller;
   late final Animation<double> _fade;
@@ -36,6 +37,7 @@ class _LoginScreenState extends State<LoginScreen>
   bool _loading = false;
   bool _obscurePassword = true;
   bool _successMessage = false;
+  bool _recoveryCodeSent = false;
   String? _message;
 
   @override
@@ -69,6 +71,7 @@ class _LoginScreenState extends State<LoginScreen>
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _recoveryCodeController.dispose();
     super.dispose();
   }
 
@@ -167,13 +170,53 @@ class _LoginScreenState extends State<LoginScreen>
       if (!mounted) return;
       setState(() {
         _successMessage = true;
-        _message = 'Se o e-mail estiver cadastrado, enviamos um link para redefinir a senha. Confira tambem o spam/lixo eletronico.';
+        _recoveryCodeSent = true;
+        _message = 'Se o e-mail estiver cadastrado, enviamos um código de recuperação. Confira sua caixa de entrada e o spam.';
       });
     } catch (error) {
       if (!mounted) return;
       setState(() {
         _successMessage = false;
         _message = 'Nao consegui solicitar redefinicao agora.';
+      });
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _verifyRecoveryCode() async {
+    if (_loading) return;
+    final email = _emailController.text.trim();
+    final code = _recoveryCodeController.text.trim();
+    if (!validEmail(email)) {
+      setState(() {
+        _successMessage = false;
+        _message = 'Informe o mesmo e-mail para o qual enviamos o código.';
+      });
+      return;
+    }
+    if (code.length < 6) {
+      setState(() {
+        _successMessage = false;
+        _message = 'Digite o código recebido por e-mail.';
+      });
+      return;
+    }
+    setState(() {
+      _loading = true;
+      _message = null;
+    });
+    try {
+      await _auth.verifyRecoveryCode(email: email, code: code);
+      await widget.onLoggedIn();
+    } catch (error) {
+      if (!mounted) return;
+      final raw = error.toString().toLowerCase();
+      setState(() {
+        _successMessage = false;
+        _message = raw.contains('expired') || raw.contains('invalid')
+            ? 'Código inválido ou expirado. Solicite um novo e-mail e use o código mais recente.'
+            : 'Não consegui validar o código. Confira os dados e tente novamente.';
       });
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -467,6 +510,24 @@ class _LoginCard extends StatelessWidget {
                       : 'Esqueci minha senha',
                 ),
               ),
+            if (state._recoveryCodeSent && !state._creating) ...[
+              const SizedBox(height: 8),
+              TextField(
+                controller: state._recoveryCodeController,
+                keyboardType: TextInputType.number,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => state._verifyRecoveryCode(),
+                decoration: const InputDecoration(
+                  labelText: 'Código recebido por e-mail',
+                  prefixIcon: Icon(Icons.password_rounded),
+                ),
+              ),
+              const SizedBox(height: 10),
+              FilledButton(
+                onPressed: state._loading ? null : state._verifyRecoveryCode,
+                child: Text(state._loading ? 'Validando...' : 'Validar código'),
+              ),
+            ],
             if (state._message != null) ...[
               const SizedBox(height: 12),
               _MessageBox(
