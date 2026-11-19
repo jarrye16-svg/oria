@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../app/theme.dart';
@@ -175,9 +176,22 @@ class _LoginScreenState extends State<LoginScreen>
       });
     } catch (error) {
       if (!mounted) return;
+      final raw = error.toString().toLowerCase();
       setState(() {
         _successMessage = false;
-        _message = 'Nao consegui solicitar redefinicao agora.';
+        _message =
+            raw.contains('over_email_send_rate_limit') ||
+                raw.contains('over_request_rate_limit') ||
+                raw.contains('rate limit') ||
+                raw.contains('security purposes')
+            ? 'O Supabase limita pedidos seguidos. Aguarde 1 minuto e solicite outro código.'
+            : raw.contains('redirect') || raw.contains('url not allowed')
+            ? 'O endereço de retorno da recuperação não está autorizado no Supabase.'
+            : raw.contains('network') ||
+                  raw.contains('failed to fetch') ||
+                  raw.contains('xmlhttprequest')
+            ? 'Sem conexão com o serviço de recuperação. Confira a internet e tente novamente.'
+            : 'Não consegui enviar o código agora. Aguarde um minuto e tente novamente.';
       });
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -220,6 +234,36 @@ class _LoginScreenState extends State<LoginScreen>
       });
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _pasteRecoveryCode() async {
+    try {
+      final clipboard = await Clipboard.getData(Clipboard.kTextPlain);
+      if (!mounted) return;
+      final match = RegExp(r'(?<!\d)\d{6,8}(?!\d)')
+          .firstMatch(clipboard?.text ?? '');
+      if (match == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Não encontrei um código no clipboard.'),
+          ),
+        );
+        return;
+      }
+      setState(() {
+        _recoveryCodeController.text = match.group(0)!;
+        _message = null;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Não consegui ler o clipboard. Cole o código manualmente.',
+          ),
+        ),
+      );
     }
   }
 
@@ -447,6 +491,12 @@ class _LoginCard extends StatelessWidget {
                   labelText: 'Código recebido por e-mail',
                   prefixIcon: Icon(Icons.password_rounded),
                 ),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: state._loading ? null : state._pasteRecoveryCode,
+                icon: const Icon(Icons.content_paste_rounded),
+                label: const Text('Colar código'),
               ),
               const SizedBox(height: 10),
               FilledButton(
