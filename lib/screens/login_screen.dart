@@ -277,6 +277,12 @@ class _LoginScreenState extends State<LoginScreen>
     if (error is AuthException) {
       final message = error.message.toLowerCase();
 
+      if (message.contains('over_request_rate_limit') ||
+          message.contains('too many requests') ||
+          message.contains('rate limit')) {
+        return 'Muitas tentativas de acesso. Aguarde alguns minutos antes de tentar novamente.';
+      }
+
       if (message.contains('invalid login credentials')) {
         if (widget.inviteMode) {
           return 'Senha incorreta para este e-mail. Se a pessoa ja tinha cadastro, use a senha antiga ou toque em Esqueci minha senha.';
@@ -298,13 +304,19 @@ class _LoginScreenState extends State<LoginScreen>
       }
 
       if (message.contains('password')) {
-        return 'A senha precisa ter pelo menos 6 caracteres.';
+        return 'A senha precisa ter pelo menos 12 caracteres.';
       }
 
       return error.message;
     }
 
     final raw = error.toString().toLowerCase();
+
+    if (raw.contains('over_request_rate_limit') ||
+        raw.contains('too many requests') ||
+        raw.contains('rate limit')) {
+      return 'Muitas tentativas de acesso. Aguarde alguns minutos antes de tentar novamente.';
+    }
 
     if (raw.contains('already registered') ||
         raw.contains('user already registered')) {
@@ -535,8 +547,9 @@ class _LoginCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                validator: (value) => (value == null || value.length < 6)
-                    ? 'A senha precisa ter pelo menos 6 caracteres.'
+                validator: (value) => state._creating &&
+                        (value == null || value.length < 12)
+                    ? 'A senha precisa ter pelo menos 12 caracteres.'
                     : null,
               ),
             if (!state._recoveryCodeSent &&
