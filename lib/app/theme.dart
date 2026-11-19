@@ -30,6 +30,7 @@ class OriaTheme {
       scaffoldBackgroundColor: background,
       fontFamily: 'OriaSans',
     );
+    final appTextTheme = base.textTheme.apply(fontFamily: 'OriaSans');
 
     return base.copyWith(
       appBarTheme: const AppBarTheme(
@@ -43,7 +44,7 @@ class OriaTheme {
           fontWeight: FontWeight.w800,
         ),
       ),
-      textTheme: base.textTheme.copyWith(
+      textTheme: appTextTheme.copyWith(
         headlineLarge: const TextStyle(
           color: text,
           fontWeight: FontWeight.w900,
