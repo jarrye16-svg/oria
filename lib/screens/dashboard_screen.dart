@@ -21,6 +21,7 @@ class DashboardScreen extends StatelessWidget {
   final VoidCallback onPreviousMonth;
   final VoidCallback onNextMonth;
   final Future<void> Function() onRefresh;
+  final VoidCallback? onSwitchHouse;
   final VoidCallback onAdd;
   final void Function(String mode) onOpenMode;
   final void Function(String mode) onAddForMode;
@@ -37,6 +38,7 @@ class DashboardScreen extends StatelessWidget {
     required this.onPreviousMonth,
     required this.onNextMonth,
     required this.onRefresh,
+    this.onSwitchHouse,
     required this.onAdd,
     required this.onOpenMode,
     required this.onAddForMode,
@@ -157,6 +159,7 @@ class DashboardScreen extends StatelessWidget {
               saldoAtual: saldoAtual,
               previsaoMes: previsaoMes,
               onRefresh: onRefresh,
+              onSwitchHouse: onSwitchHouse,
             ),
             const SizedBox(height: 18),
             MonthHeader(
@@ -280,6 +283,7 @@ class _HeroHeader extends StatelessWidget {
   final double saldoAtual;
   final double previsaoMes;
   final Future<void> Function() onRefresh;
+  final VoidCallback? onSwitchHouse;
 
   const _HeroHeader({
     required this.houseName,
@@ -287,6 +291,7 @@ class _HeroHeader extends StatelessWidget {
     required this.saldoAtual,
     required this.previsaoMes,
     required this.onRefresh,
+    required this.onSwitchHouse,
   });
 
   String _greeting() {
@@ -334,14 +339,37 @@ class _HeroHeader extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      houseName,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.6,
-                      ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            houseName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.6,
+                            ),
+                          ),
+                        ),
+                        if (onSwitchHouse != null)
+                          IconButton(
+                            tooltip: 'Trocar de casa ou família',
+                            visualDensity: VisualDensity.compact,
+                            constraints: const BoxConstraints.tightFor(
+                              width: 44,
+                              height: 44,
+                            ),
+                            onPressed: onSwitchHouse,
+                            icon: const Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              color: Colors.white,
+                            ),
+                          ),
+                      ],
                     ),
                   ],
                 ),

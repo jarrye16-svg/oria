@@ -11,6 +11,7 @@ import 'onboarding_screen.dart';
 import 'password_reset_screen.dart';
 import 'invite_join_screen.dart';
 import 'join_link_screen.dart';
+import 'house_selection_screen.dart';
 import 'shell_screen.dart';
 import 'splash_screen.dart';
 
@@ -39,6 +40,9 @@ class _AuthGateState extends State<AuthGate> {
   bool _loading = true;
   Session? _session;
   House? _house;
+  List<House> _houses = const [];
+  bool _showHouseSelection = false;
+  bool _addingHouse = false;
   bool _loadFailed = false;
   int _loadVersion = 0;
   final String? _inviteToken = Uri.base.queryParameters['invite'];
@@ -79,6 +83,9 @@ class _AuthGateState extends State<AuthGate> {
       setState(() {
         _session = null;
         _house = null;
+        _houses = const [];
+        _showHouseSelection = false;
+        _addingHouse = false;
         _loading = false;
         _loadFailed = false;
       });
@@ -99,13 +106,19 @@ class _AuthGateState extends State<AuthGate> {
       );
       if (!mounted || version != _loadVersion) return;
       setState(() {
-        _house = houses.isEmpty ? null : houses.first;
+        _houses = houses;
+        _house = houses.length == 1 ? houses.first : null;
+        _showHouseSelection = houses.length > 1;
+        _addingHouse = false;
         _loading = false;
       });
     } catch (_) {
       if (!mounted || version != _loadVersion) return;
       setState(() {
         _house = null;
+        _houses = const [];
+        _showHouseSelection = false;
+        _addingHouse = false;
         _loading = false;
         _loadFailed = true;
       });
@@ -181,7 +194,36 @@ class _AuthGateState extends State<AuthGate> {
         ),
       );
     }
+    if (_showHouseSelection) {
+      return HouseSelectionScreen(
+        houses: _houses,
+        selectedHouseId: _house?.id,
+        onSelected: (house) => setState(() {
+          _house = house;
+          _showHouseSelection = false;
+        }),
+        onAddHouse: () => setState(() {
+          _showHouseSelection = false;
+          _addingHouse = true;
+        }),
+      );
+    }
+
+    if (_addingHouse) {
+      return OnboardingScreen(
+        onCreated: _loadHouse,
+        onBack: () => setState(() {
+          _addingHouse = false;
+          _showHouseSelection = true;
+        }),
+      );
+    }
+
     if (_house == null) return OnboardingScreen(onCreated: _loadHouse);
-    return ShellScreen(house: _house!);
+    return ShellScreen(
+      key: ValueKey(_house!.id),
+      house: _house!,
+      onSwitchHouse: () => setState(() => _showHouseSelection = true),
+    );
   }
 }

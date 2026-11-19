@@ -10,8 +10,9 @@ import 'invite_join_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   final Future<void> Function() onCreated;
+  final VoidCallback? onBack;
 
-  const OnboardingScreen({super.key, required this.onCreated});
+  const OnboardingScreen({super.key, required this.onCreated, this.onBack});
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -316,6 +317,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             ),
                           ),
                         ],
+                        if (widget.onBack != null)
+                          TextButton.icon(
+                            onPressed: _loading || _joining
+                                ? null
+                                : widget.onBack,
+                            icon: const Icon(Icons.arrow_back_rounded),
+                            label: const Text('Voltar às minhas casas'),
+                          ),
                         TextButton.icon(
                           onPressed: _loading || _joining
                               ? null
